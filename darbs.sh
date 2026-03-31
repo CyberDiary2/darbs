@@ -221,6 +221,36 @@ if [ -f "$DOT_DIR/.tmux.conf" ]; then
     cp "$DOT_DIR/.tmux.conf" "$HOME/.tmux.conf"
 fi
 
+
+
+
+# -----------------------------
+# XFCE CONFIG
+# -----------------------------
+log "Setting up XFCE config..."
+
+XFCONF_DIR="$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
+
+# Wipe any existing XFCE config to start completely clean
+rm -rf "$HOME/.config/xfce4"
+mkdir -p "$XFCONF_DIR"
+
+# Copy all XML config files directly from dotfiles repo
+if [ -d "$DOT_DIR/xfce4/xfconf/xfce-perchannel-xml" ]; then
+    cp "$DOT_DIR/xfce4/xfconf/xfce-perchannel-xml/"*.xml "$XFCONF_DIR/"
+    log "XFCE XML configs copied."
+else
+    log "WARNING: xfce4/xfconf/xfce-perchannel-xml not found in dotfiles repo!"
+fi
+
+# Fix hardcoded /home/drew paths to match the current user's home directory
+sed -i "s|/home/drew|$HOME|g" "$XFCONF_DIR/xfce4-desktop.xml"
+
+# Set xfce4-terminal as default terminal
+cat > "$HOME/.config/xfce4/helpers.rc" <<EOF
+TerminalEmulator=xfce4-terminal
+EOF
+
 # -----------------------------
 # WALLPAPERS
 # -----------------------------
@@ -251,34 +281,8 @@ xfconf-query -c xfce4-desktop -l | grep image-style | while read -r path; do
   xfconf-query -c xfce4-desktop -p "$path" -s 3
 done
 
+sudo cp -f ~/wallpapers/0327.jpg /usr/share/backgrounds/xfce/xfce-x.svg
 
-
-# -----------------------------
-# XFCE CONFIG
-# -----------------------------
-log "Setting up XFCE config..."
-
-XFCONF_DIR="$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
-
-# Wipe any existing XFCE config to start completely clean
-rm -rf "$HOME/.config/xfce4"
-mkdir -p "$XFCONF_DIR"
-
-# Copy all XML config files directly from dotfiles repo
-if [ -d "$DOT_DIR/xfce4/xfconf/xfce-perchannel-xml" ]; then
-    cp "$DOT_DIR/xfce4/xfconf/xfce-perchannel-xml/"*.xml "$XFCONF_DIR/"
-    log "XFCE XML configs copied."
-else
-    log "WARNING: xfce4/xfconf/xfce-perchannel-xml not found in dotfiles repo!"
-fi
-
-# Fix hardcoded /home/drew paths to match the current user's home directory
-sed -i "s|/home/drew|$HOME|g" "$XFCONF_DIR/xfce4-desktop.xml"
-
-# Set xfce4-terminal as default terminal
-cat > "$HOME/.config/xfce4/helpers.rc" <<EOF
-TerminalEmulator=xfce4-terminal
-EOF
 
 # -----------------------------
 # FINISH
