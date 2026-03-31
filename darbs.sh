@@ -2,7 +2,7 @@
 
 ################################################################################
 #                                                                              #
-#  DARBS - Drew's Auto Rice Bootstrap Script                                   #
+#  DARBS - Drew's Auto-Rice Bug Bounty Bootstrapping Scripts                   #
 #                                                                              #
 #  Author: andrew                                                              #
 #  Email : andrew@cyberdiary.net                                               #
