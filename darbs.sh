@@ -163,7 +163,8 @@ sudo pacman -S --noconfirm \
     dnsutils \
     inetutils \
     net-tools \
-    btop 
+    btop \
+    python-pip
     
 
 # -----------------------------
@@ -294,6 +295,15 @@ done
 
 sudo cp -f ~/wallpapers/0327.jpg /usr/share/backgrounds/xfce/xfce-x.svg
 
+GO_BIN="$HOME/.local/bin"
+
+mkdir -p "$GO_BIN"
+
+#------------------------------
+# MORE GO 
+#------------------------------
+
+export PATH=$HOME/go/bin:$HOME/.local/bin:$PATH && GO111MODULE=on go install github.com/projectdiscovery/httpx/cmd/httpx@latest github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest github.com/tomnomnom/assetfinder@latest && pip install --user gf-patterns && echo 'export PATH=$HOME/go/bin:$HOME/.local/bin:$PATH' >> ~/.bashrc
 
 # -----------------------------
 # FINISH
