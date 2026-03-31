@@ -83,7 +83,9 @@ sudo pacman -S --noconfirm \
     base-devel \
     firefox \
     flameshot \
-    fastfetch
+    fastfetch \
+    libreoffice-still 
+
 
 # -----------------------------
 # ENABLE SERVICES
@@ -182,7 +184,10 @@ fi
 # -----------------------------
 log "Installing AUR packages: VSCodium..."
 #paru -S --noconfirm vscodium-bin
-yay -S --noconfirm vscodium-bin
+yay -S --noconfirm \
+ vscodium-bin \
+ obsidian
+
 # -----------------------------
 # CLONE DOTFILES
 # -----------------------------
