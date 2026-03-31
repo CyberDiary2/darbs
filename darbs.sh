@@ -195,8 +195,7 @@ yay -S --noconfirm \
  patator \
  subjack \
  eyewitness \
- scout-suite \
- pacu 
+ scout-suite 
 
 
 
