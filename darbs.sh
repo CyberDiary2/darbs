@@ -163,8 +163,8 @@ sudo pacman -S --noconfirm \
     dnsutils \
     inetutils \
     net-tools \
-    btop \
-    aws-cli
+    btop 
+    
 
 # -----------------------------
 # INSTALL AUR HELPER (YAY)
