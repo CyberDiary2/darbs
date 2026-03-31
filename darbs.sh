@@ -111,7 +111,6 @@ fi
 log "Installing bug bounty and security tools..."
 sudo pacman -S --noconfirm \
     nmap \
-    python-pip \
     burpsuite \
     sqlmap \
     nikto \
@@ -164,7 +163,8 @@ sudo pacman -S --noconfirm \
     dnsutils \
     inetutils \
     net-tools \
-    btop
+    btop \
+    aws-cli
 
 # -----------------------------
 # INSTALL AUR HELPER (YAY)
