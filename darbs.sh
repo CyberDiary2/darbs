@@ -235,7 +235,22 @@ fi
 
 #Set wallpaper 
 
-xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/image-path -s /home/wallpers/0327.jpg && xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/image-style -s 5
+# xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/image-path -s /home/wallpers/0327.jpg && xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/image-style -s 5
+
+#!/bin/bash
+
+WALL="$HOME/wallpapers/0327.jpg"
+
+# Set wallpaper for all monitors/workspaces
+xfconf-query -c xfce4-desktop -l | grep last-image | while read -r path; do
+  xfconf-query -c xfce4-desktop -p "$path" -s "$WALL"
+done
+
+# Set style to stretched
+xfconf-query -c xfce4-desktop -l | grep image-style | while read -r path; do
+  xfconf-query -c xfce4-desktop -p "$path" -s 3
+done
+
 
 
 # -----------------------------
