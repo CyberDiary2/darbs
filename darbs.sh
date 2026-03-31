@@ -111,10 +111,12 @@ fi
 log "Installing bug bounty and security tools..."
 sudo pacman -S --noconfirm \
     nmap \
+    python-pip \
     burpsuite \
     sqlmap \
     nikto \
     gobuster \
+    arachni \
     ffuf \
     amass \
     whatweb \
@@ -126,7 +128,7 @@ sudo pacman -S --noconfirm \
     hydra \
     masscan \
     netcat \
-    chromium
+    chromium 
 
 # -----------------------------
 # INSTALL GO
@@ -186,7 +188,17 @@ log "Installing AUR packages: VSCodium..."
 #paru -S --noconfirm vscodium-bin
 yay -S --noconfirm \
  vscodium-bin \
- obsidian
+ obsidian \
+ nuclei \
+ hydra \
+ medusa \
+ patator \
+ subjack \
+ eyewitness \
+ scout-suite \
+ pacu 
+
+
 
 # -----------------------------
 # CLONE DOTFILES
