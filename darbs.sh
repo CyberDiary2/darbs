@@ -88,7 +88,6 @@ sudo pacman -S --noconfirm \
     fastfetch \
     libreoffice-still \
     thunderbird \
-    simplescreenrecorder \
     ranger \
     qalculate-gtk \
     texlive \
