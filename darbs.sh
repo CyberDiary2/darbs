@@ -99,6 +99,7 @@ sudo pacman -S --noconfirm \
     papirus-icon-theme \
     rofi \
     conky \
+    sassc \
     xfce4-weather-plugin \
     xfce4-systemload-plugin
 
@@ -292,9 +293,8 @@ EOF
 # GTK THEME (Everforest)
 # -----------------------------
 log "Installing Everforest GTK theme..."
-git clone https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme.git /tmp/everforest
-mkdir -p "$HOME/.themes"
-cp -r /tmp/everforest/themes/* "$HOME/.themes/"
+git clone --depth 1 https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme.git /tmp/everforest
+/tmp/everforest/themes/install.sh -c dark -t green -d "$HOME/.themes"
 rm -rf /tmp/everforest
 
 # -----------------------------
