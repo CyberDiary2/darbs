@@ -123,7 +123,6 @@ sudo pacman -S --noconfirm \
     sqlmap \
     nikto \
     gobuster \
-    arachni \
     ffuf \
     amass \
     whatweb \
@@ -134,7 +133,7 @@ sudo pacman -S --noconfirm \
     metasploit \
     hydra \
     masscan \
-    netcat \
+    openbsd-netcat \
     chromium 
 
 # -----------------------------
@@ -168,7 +167,7 @@ sudo pacman -S --noconfirm \
     fzf \
     lsof \
     strace \
-    dnsutils \
+    bind \
     inetutils \
     net-tools \
     btop \
@@ -199,15 +198,15 @@ yay -S --noconfirm \
  vscodium-bin \
  obsidian \
  nuclei \
- hydra \
  medusa \
  patator \
  subjack \
  eyewitness \
  scout-suite \
- gnome-pomodoro \
  planify \
- peek
+ peek \
+ ttf-jetbrains-mono-nerd \
+ ghidra
 
 
 

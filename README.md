@@ -106,7 +106,6 @@ vscodium-bin
 libreoffice-still
 obsidian 
 flameshot
-gnome-pomodoro
 planify
 peek
 thunderbird
