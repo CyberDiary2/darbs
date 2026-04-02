@@ -112,6 +112,11 @@ peek
 simplescreenrecorder
 thunderbird
 ranger
+qalculate-gtk
+texlive-most
+latexmk
+texmaker
+calcurse
 
 
 

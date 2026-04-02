@@ -89,7 +89,12 @@ sudo pacman -S --noconfirm \
     libreoffice-still \
     thunderbird \
     simplescreenrecorder \
-    ranger
+    ranger \
+    qalculate-gtk \
+    texlive-most \
+    latexmk \
+    texmaker \
+    calcurse
 
 
 # -----------------------------
@@ -237,6 +242,9 @@ cp "$DOT_DIR/nanorc.nanorc" "$HOME/.nanorc"
 # TMUX CONFIG
 # -----------------------------
 log "Setting up tmux config..."
+if [ -f "$DOT_DIR/tmux-help.txt" ]; then
+    cp "$DOT_DIR/tmux-help.txt" "$HOME/.tmux-help.txt"
+fi
 if [ -f "$SCRIPT_DIR/.tmux.conf" ]; then
     cp "$SCRIPT_DIR/.tmux.conf" "$HOME/.tmux.conf"
 elif [ -f "$DOT_DIR/.tmux.conf" ]; then
