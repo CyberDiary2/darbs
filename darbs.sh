@@ -160,7 +160,10 @@ sudo pacman -S --noconfirm \
     impacket \
     seclists \
     frida \
-    objection
+    objection \
+    commix \
+    enum4linux-ng \
+    massdns
 
 # -----------------------------
 # INSTALL GO
@@ -185,12 +188,20 @@ go install github.com/hahwul/dalfox/v2@latest
 go install github.com/devanshbatham/paramspider@latest
 go install github.com/s0md3v/smap/cmd/smap@latest
 go install github.com/hakluke/hakrawler@latest
+go install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
+go install github.com/projectdiscovery/unfurl@latest
 
 # -----------------------------
 # PYTHON SECURITY TOOLS
 # -----------------------------
 log "Installing Python security tools..."
-pip install --user arjun
+pip install --user arjun apkleaks knockpy
+
+# -----------------------------
+# NAHAMSEC TOOLS
+# -----------------------------
+log "Installing NahamSec tools..."
+git clone https://github.com/nahamsec/lazys3.git "$HOME/tools/lazys3" 2>/dev/null || true
 
 # -----------------------------
 # EXTRA UTILITIES
