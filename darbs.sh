@@ -190,6 +190,7 @@ go install github.com/s0md3v/smap/cmd/smap@latest
 go install github.com/hakluke/hakrawler@latest
 go install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
 go install github.com/projectdiscovery/unfurl@latest
+go install github.com/sensepost/gowitness@latest
 
 # -----------------------------
 # PYTHON SECURITY TOOLS
