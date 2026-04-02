@@ -96,7 +96,6 @@ sudo pacman -S --noconfirm \
     picom \
     papirus-icon-theme \
     rofi \
-    plank \
     conky \
     xfce4-weather-plugin \
     xfce4-systemload-plugin
