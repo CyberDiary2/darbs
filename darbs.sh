@@ -93,6 +93,10 @@ sudo pacman -S --noconfirm \
     gnucash \
     rhythmbox \
     caligula \
+    inkscape \
+    keepassxc \
+    copyq \
+    redshift \
     texlive \
     texmaker \
     calcurse \
@@ -217,6 +221,7 @@ yay -S --noconfirm \
  peek \
  ttf-jetbrains-mono-nerd \
  ghidra \
+ drawio-desktop-bin
 
 
 
