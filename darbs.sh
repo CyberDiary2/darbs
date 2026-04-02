@@ -214,7 +214,6 @@ yay -S --noconfirm \
  peek \
  ttf-jetbrains-mono-nerd \
  ghidra \
- colloid-everforest-gtk-theme-git
 
 
 
@@ -287,6 +286,15 @@ sed -i "s|/home/drew|$HOME|g" "$XFCONF_DIR/xfce4-desktop.xml"
 cat > "$HOME/.config/xfce4/helpers.rc" <<EOF
 TerminalEmulator=xfce4-terminal
 EOF
+
+# -----------------------------
+# GTK THEME (Everforest)
+# -----------------------------
+log "Installing Everforest GTK theme..."
+git clone https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme.git /tmp/everforest
+mkdir -p "$HOME/.themes"
+cp -r /tmp/everforest/themes/* "$HOME/.themes/"
+rm -rf /tmp/everforest
 
 # -----------------------------
 # THEMING / RICING
