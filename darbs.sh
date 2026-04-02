@@ -163,7 +163,18 @@ sudo pacman -S --noconfirm \
     objection \
     commix \
     enum4linux-ng \
-    massdns
+    massdns \
+    aircrack-ng \
+    ettercap \
+    kismet \
+    binwalk \
+    autopsy \
+    volatility3 \
+    bloodhound \
+    bettercap \
+    macchanger \
+    maltego \
+    exploitdb
 
 # -----------------------------
 # INSTALL GO
