@@ -203,8 +203,7 @@ go install github.com/sensepost/gowitness@latest
 # -----------------------------
 # PYTHON SECURITY TOOLS
 # -----------------------------
-log "Installing Python security tools..."
-pip install --user arjun apkleaks knockpy
+#log "Installing Python security tools..."
 
 # -----------------------------
 # NAHAMSEC TOOLS
