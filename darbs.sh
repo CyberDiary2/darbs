@@ -185,7 +185,6 @@ go install github.com/tomnomnom/assetfinder@latest
 go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
 go install github.com/projectdiscovery/katana/cmd/katana@latest
 go install github.com/hahwul/dalfox/v2@latest
-go install github.com/devanshbatham/paramspider@latest
 go install github.com/s0md3v/smap/cmd/smap@latest
 go install github.com/hakluke/hakrawler@latest
 go install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
