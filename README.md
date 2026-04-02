@@ -109,7 +109,6 @@ flameshot
 gnome-pomodoro
 planify
 peek
-simplescreenrecorder
 thunderbird
 ranger
 qalculate-gtk

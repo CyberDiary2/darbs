@@ -208,8 +208,7 @@ yay -S --noconfirm \
  scout-suite \
  gnome-pomodoro \
  planify \
- peek \
- simplescreenrecorder
+ peek
 
 
 
