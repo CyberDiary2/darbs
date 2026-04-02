@@ -148,7 +148,19 @@ sudo pacman -S --noconfirm \
     hydra \
     masscan \
     openbsd-netcat \
-    chromium 
+    chromium \
+    john \
+    hashcat \
+    mitmproxy \
+    zaproxy \
+    theharvester \
+    recon-ng \
+    responder \
+    crackmapexec \
+    impacket \
+    seclists \
+    frida \
+    objection
 
 # -----------------------------
 # INSTALL GO
@@ -167,6 +179,18 @@ go install github.com/tomnomnom/waybackurls@latest
 go install github.com/tomnomnom/httprobe@latest
 go install github.com/tomnomnom/gf@latest
 go install github.com/tomnomnom/assetfinder@latest
+go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+go install github.com/projectdiscovery/katana/cmd/katana@latest
+go install github.com/hahwul/dalfox/v2@latest
+go install github.com/devanshbatham/paramspider@latest
+go install github.com/s0md3v/smap/cmd/smap@latest
+go install github.com/hakluke/hakrawler@latest
+
+# -----------------------------
+# PYTHON SECURITY TOOLS
+# -----------------------------
+log "Installing Python security tools..."
+pip install --user arjun
 
 # -----------------------------
 # EXTRA UTILITIES
