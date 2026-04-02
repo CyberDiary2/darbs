@@ -91,8 +91,7 @@ sudo pacman -S --noconfirm \
     simplescreenrecorder \
     ranger \
     qalculate-gtk \
-    texlive-most \
-    latexmk \
+    texlive \
     texmaker \
     calcurse
 
@@ -209,7 +208,8 @@ yay -S --noconfirm \
  scout-suite \
  gnome-pomodoro \
  planify \
- peek
+ peek \
+ simplescreenrecorder
 
 
 
