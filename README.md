@@ -116,6 +116,8 @@ qalculate-gtk
 texlive
 texmaker
 calcurse
+gnucash
+rhythmbox
 
 ### Ricing / Theming
 picom

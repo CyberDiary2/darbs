@@ -90,6 +90,8 @@ sudo pacman -S --noconfirm \
     thunderbird \
     ranger \
     qalculate-gtk \
+    gnucash \
+    rhythmbox \
     texlive \
     texmaker \
     calcurse \
