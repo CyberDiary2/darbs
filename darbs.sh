@@ -302,6 +302,15 @@ rm -rf /tmp/everforest
 # -----------------------------
 log "Setting up picom, rofi, and autostart from dotfiles..."
 
+# GTK theme configs
+mkdir -p "$HOME/.config/gtk-3.0"
+if [ -f "$DOT_DIR/gtk-3.0/settings.ini" ]; then
+    cp "$DOT_DIR/gtk-3.0/settings.ini" "$HOME/.config/gtk-3.0/settings.ini"
+fi
+if [ -f "$DOT_DIR/gtk-2.0/gtkrc-2.0" ]; then
+    cp "$DOT_DIR/gtk-2.0/gtkrc-2.0" "$HOME/.gtkrc-2.0"
+fi
+
 # Picom
 mkdir -p "$HOME/.config/picom"
 if [ -f "$DOT_DIR/picom/picom.conf" ]; then
