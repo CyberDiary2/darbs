@@ -92,6 +92,7 @@ sudo pacman -S --noconfirm \
     qalculate-gtk \
     gnucash \
     rhythmbox \
+    caligula \
     texlive \
     texmaker \
     calcurse \
