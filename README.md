@@ -111,10 +111,18 @@ peek
 thunderbird
 ranger
 qalculate-gtk
-texlive-most
-latexmk
+texlive
 texmaker
 calcurse
 
+### Ricing / Theming
+picom
+papirus-icon-theme
+rofi
+plank
+conky
+everforest-gtk-theme-git
+xfce4-weather-plugin
+xfce4-systemload-plugin
 
 
