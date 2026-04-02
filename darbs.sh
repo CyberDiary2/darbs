@@ -86,7 +86,7 @@ sudo pacman -S --noconfirm \
     firefox \
     flameshot \
     fastfetch \
-    libreoffice-still \
+    libreoffice-fresh \
     thunderbird \
     ranger \
     qalculate-gtk \

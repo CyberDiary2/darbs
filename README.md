@@ -103,7 +103,7 @@ vscodium-bin
 
 
 ### Productivity
-libreoffice-still
+libreoffice-fresh
 obsidian 
 flameshot
 planify
