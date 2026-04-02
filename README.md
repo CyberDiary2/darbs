@@ -93,10 +93,14 @@ vscodium-bin
 
 ### Productivity
 libreoffice-still
-
 obsidian 
-
 flameshot
+gnome-pomodoro
+planify
+peek
+simplescreenrecorder
+thunderbird
+ranger
 
 
 

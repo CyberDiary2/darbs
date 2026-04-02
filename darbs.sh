@@ -71,6 +71,7 @@ sudo pacman -S --noconfirm \
     networkmanager \
     bash-completion \
     tmux \
+    wmctrl \
     git \
     curl \
     wget \
@@ -85,7 +86,10 @@ sudo pacman -S --noconfirm \
     firefox \
     flameshot \
     fastfetch \
-    libreoffice-still 
+    libreoffice-still \
+    thunderbird \
+    simplescreenrecorder \
+    ranger
 
 
 # -----------------------------
@@ -197,7 +201,10 @@ yay -S --noconfirm \
  patator \
  subjack \
  eyewitness \
- scout-suite 
+ scout-suite \
+ gnome-pomodoro \
+ planify \
+ peek
 
 
 
