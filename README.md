@@ -12,13 +12,24 @@ echo -e " e[38;5;22m
 
 
 
-Drew's Auto-Rice Bootstrapping Scripts
+### Drew's Auto-Rice Bootstrapping Scripts
 
 I stole this idea from Luke Smith's LARBS.
 
 This is an automatic rice and bootstrapping scripts program that auto configures a fresh arch install with xfce4, some bug bounty tools, and productivity tools.
 
 The terminal color scheme is based on the "moss" theme I like using when taking notes in obsidian. 
+
+### How to run
+
+```bash
+git clone https://github.com/CyberDiary2/darbs.git
+cd darbs
+chmod +x darbs.sh
+./darbs.sh
+```
+
+Run on a fresh Arch install. Reboot when it finishes.
 
 
 
