@@ -214,7 +214,7 @@ yay -S --noconfirm \
  peek \
  ttf-jetbrains-mono-nerd \
  ghidra \
- everforest-gtk-theme-git
+ colloid-everforest-gtk-theme-git
 
 
 
@@ -291,153 +291,25 @@ EOF
 # -----------------------------
 # THEMING / RICING
 # -----------------------------
-log "Setting up theme, icons, and compositor..."
+log "Setting up picom, rofi, and autostart from dotfiles..."
 
-# Set Everforest GTK theme and Papirus icons
-xfconf-query -c xsettings -p /Net/ThemeName -s "Everforest-Dark-BL" --create -t string
-xfconf-query -c xsettings -p /Net/IconThemeName -s "Papirus-Dark" --create -t string
-xfconf-query -c xfwm4 -p /general/theme -s "Everforest-Dark-BL" --create -t string
-
-# Panel: move to top, set semi-transparent
-xfconf-query -c xfce4-panel -p /panels/panel-1/position -s "p=6;x=0;y=0" --create -t string
-xfconf-query -c xfce4-panel -p /panels/panel-1/background-alpha -s 85 --create -t int
-
-# Picom config for transparency, shadows, rounded corners
+# Picom
 mkdir -p "$HOME/.config/picom"
-cat > "$HOME/.config/picom/picom.conf" <<'PICOM'
-backend = "glx";
-vsync = true;
+if [ -f "$DOT_DIR/picom/picom.conf" ]; then
+    cp "$DOT_DIR/picom/picom.conf" "$HOME/.config/picom/picom.conf"
+fi
 
-# Shadows
-shadow = true;
-shadow-radius = 12;
-shadow-offset-x = -7;
-shadow-offset-y = -7;
-shadow-opacity = 0.6;
-shadow-exclude = [
-    "name = 'Notification'",
-    "class_g = 'xfce4-panel'"
-];
-
-# Transparency
-inactive-opacity = 0.9;
-active-opacity = 1.0;
-frame-opacity = 0.9;
-inactive-opacity-override = false;
-focus-exclude = [
-    "class_g = 'firefox'",
-    "class_g = 'Chromium'"
-];
-
-# Rounded corners
-corner-radius = 8;
-rounded-corners-exclude = [
-    "class_g = 'xfce4-panel'",
-    "window_type = 'dock'"
-];
-
-# Fading
-fading = true;
-fade-in-step = 0.04;
-fade-out-step = 0.04;
-PICOM
-
-# Autostart picom and plank
-mkdir -p "$HOME/.config/autostart"
-cat > "$HOME/.config/autostart/picom.desktop" <<'DESK'
-[Desktop Entry]
-Type=Application
-Name=Picom
-Exec=picom --config ~/.config/picom/picom.conf -b
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-DESK
-
-cat > "$HOME/.config/autostart/plank.desktop" <<'DESK'
-[Desktop Entry]
-Type=Application
-Name=Plank
-Exec=plank
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-DESK
-
-# Rofi config with moss theme
+# Rofi
 mkdir -p "$HOME/.config/rofi"
-cat > "$HOME/.config/rofi/config.rasi" <<'ROFI'
-configuration {
-    modi: "drun,run,window";
-    show-icons: true;
-    icon-theme: "Papirus-Dark";
-    display-drun: "Apps";
-    display-run: "Run";
-    display-window: "Windows";
-}
+if [ -f "$DOT_DIR/rofi/config.rasi" ]; then
+    cp "$DOT_DIR/rofi/config.rasi" "$HOME/.config/rofi/config.rasi"
+fi
 
-* {
-    bg:       #1a2a1a;
-    bg-alt:   #2e4a2e;
-    fg:       #c8e6a0;
-    fg-alt:   #8aaa70;
-    accent:   #5a8c50;
-    urgent:   #e06060;
-
-    background-color: @bg;
-    text-color:       @fg;
-}
-
-window {
-    width:            40%;
-    border:           2px;
-    border-color:     @accent;
-    border-radius:    8px;
-    padding:          20px;
-}
-
-inputbar {
-    children:         [ prompt, entry ];
-    spacing:          10px;
-    padding:          10px;
-    background-color: @bg-alt;
-    border-radius:    6px;
-}
-
-prompt {
-    text-color:       @accent;
-    background-color: @bg-alt;
-}
-
-entry {
-    placeholder:      "Search...";
-    background-color: @bg-alt;
-}
-
-listview {
-    lines:            8;
-    spacing:          5px;
-    padding:          10px 0 0 0;
-}
-
-element {
-    padding:          8px;
-    border-radius:    4px;
-}
-
-element selected {
-    background-color: @accent;
-    text-color:       #0f1a0f;
-}
-
-element-text {
-    text-color:       inherit;
-}
-
-element-icon {
-    size:             24px;
-}
-ROFI
+# Autostart entries (picom, plank)
+mkdir -p "$HOME/.config/autostart"
+if [ -d "$DOT_DIR/autostart" ]; then
+    cp "$DOT_DIR/autostart/"*.desktop "$HOME/.config/autostart/"
+fi
 
 # -----------------------------
 # WALLPAPERS
