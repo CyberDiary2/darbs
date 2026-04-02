@@ -92,8 +92,10 @@ vscodium-bin
 
 
 ### Productivity
-libreoffice-still 
+libreoffice-still
+
 obsidian 
+
 flameshot
 
 

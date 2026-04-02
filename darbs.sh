@@ -1,4 +1,5 @@
 #!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ################################################################################
 #                                                                              #
@@ -228,9 +229,13 @@ cp "$DOT_DIR/nanorc.nanorc" "$HOME/.nanorc"
 # -----------------------------
 # TMUX CONFIG
 # -----------------------------
-if [ -f "$DOT_DIR/.tmux.conf" ]; then
-    log "Setting up tmux config..."
+log "Setting up tmux config..."
+if [ -f "$SCRIPT_DIR/.tmux.conf" ]; then
+    cp "$SCRIPT_DIR/.tmux.conf" "$HOME/.tmux.conf"
+elif [ -f "$DOT_DIR/.tmux.conf" ]; then
     cp "$DOT_DIR/.tmux.conf" "$HOME/.tmux.conf"
+else
+    log "WARNING: No .tmux.conf found in darbs repo or dotfiles repo"
 fi
 
 
