@@ -293,6 +293,8 @@ EOF
 # GTK THEME (Everforest)
 # -----------------------------
 log "Installing Everforest GTK theme..."
+mkdir -p "$HOME/.themes"
+rm -rf /tmp/everforest
 git clone --depth 1 https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme.git /tmp/everforest
 /tmp/everforest/themes/install.sh -c dark -t green -d "$HOME/.themes"
 rm -rf /tmp/everforest
