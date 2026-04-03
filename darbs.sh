@@ -177,8 +177,6 @@ sudo pacman -S --noconfirm \
     maltego \
     exploitdb \
     dnsenum \
-    searchsploit \
-    dirb \
     cewl \
     wifite \
     reaver \
@@ -215,10 +213,10 @@ go install github.com/projectdiscovery/dnsx/cmd/dnsx@latest
 # -----------------------------
 # PYTHON SECURITY TOOLS
 # -----------------------------
-log "Installing Python security tools..."
+#log "Installing Python security tools..."
 
-pip install --user xsstrike
-done
+#pip install --user xsstrike
+#done
 
 # -----------------------------
 # NAHAMSEC TOOLS
