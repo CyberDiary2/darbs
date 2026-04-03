@@ -223,8 +223,8 @@ done
 # -----------------------------
 # NAHAMSEC TOOLS
 # -----------------------------
-log "Installing NahamSec tools..."
-git clone https://github.com/nahamsec/lazys3.git "$HOME/tools/lazys3" 2>/dev/null || true
+#log "Installing NahamSec tools..."
+#git clone https://github.com/nahamsec/lazys3.git "$HOME/tools/lazys3" 2>/dev/null || true
 
 # -----------------------------
 # EXTRA UTILITIES
@@ -244,8 +244,8 @@ sudo pacman -S --noconfirm \
     net-tools \
     btop \
     python \
-    python-pip \
-    simplescreenrecorder
+    python-pip 
+    
     
 
 # -----------------------------
