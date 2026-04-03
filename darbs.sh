@@ -76,6 +76,7 @@ sudo pacman -S --noconfirm \
     curl \
     wget \
     unzip \
+    python-pip \
     zip \
     neovim \
     htop \
