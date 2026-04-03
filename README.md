@@ -44,6 +44,7 @@ lightdm lightdm-gtk-greeter
 networkmanager  
 bash-completion  
 tmux  
+wmctrl  
 git  
 curl  
 wget  
@@ -55,25 +56,19 @@ tree
 rsync  
 which  
 base-devel  
-firefox      
+firefox  
+fastfetch  
+go  
+python  
+python-pip  
 btop  
-python-pip
-fastfetch
 
-### Bug Bounty
-nuclei 
-hydra 
-medusa 
-patator 
-subjack 
-eyewitness 
-scout-suite 
+### Bug Bounty / Security
 nmap  
 burpsuite  
 sqlmap  
 nikto  
 gobuster  
-arachni  
 ffuf  
 amass  
 whatweb  
@@ -84,12 +79,81 @@ wireshark-qt
 metasploit  
 hydra  
 masscan  
-netcat  
-chromium 
-waybackurls
-httprobe
-gf
-assetfinder
+openbsd-netcat  
+chromium  
+john  
+hashcat  
+mitmproxy  
+zaproxy  
+theharvester  
+recon-ng  
+responder  
+crackmapexec  
+impacket  
+seclists  
+frida  
+objection  
+commix  
+enum4linux-ng  
+massdns  
+aircrack-ng  
+ettercap  
+kismet  
+binwalk  
+autopsy  
+volatility3  
+bloodhound  
+bettercap  
+macchanger  
+maltego  
+exploitdb  
+dnsenum  
+searchsploit  
+dirb  
+cewl  
+wifite  
+reaver  
+foremost  
+socat  
+ghidra  
+beef-xss  
+
+### Go Tools
+waybackurls  
+httprobe  
+gf  
+assetfinder  
+subfinder  
+katana  
+dalfox  
+smap  
+naabu  
+gowitness  
+dnsx  
+httpx  
+nuclei  
+
+### Python Tools
+xsstrike  
+gf-patterns  
+
+### AUR
+vscodium-bin  
+obsidian  
+nuclei  
+medusa  
+patator  
+subjack  
+eyewitness  
+scout-suite  
+planify  
+peek  
+ttf-jetbrains-mono-nerd  
+ghidra  
+drawio-desktop-bin  
+beef-xss  
+
+### Utilities
 ncdu  
 ripgrep  
 fd  
@@ -98,35 +162,41 @@ jq
 fzf  
 lsof  
 strace  
-dnsutils  
+bind  
 inetutils  
 net-tools  
-vscodium-bin  
-
+simplescreenrecorder  
 
 ### Productivity
-libreoffice-fresh
-obsidian 
-flameshot
-planify
-peek
-thunderbird
-ranger
-qalculate-gtk
-texlive
-texmaker
-calcurse
-gnucash
-rhythmbox
+libreoffice-fresh  
+obsidian  
+flameshot  
+planify  
+peek  
+thunderbird  
+ranger  
+qalculate-gtk  
+texlive  
+texmaker  
+calcurse  
+gnucash  
+rhythmbox  
+caligula  
+inkscape  
+keepassxc  
+copyq  
+redshift  
+drawio-desktop-bin  
 
 ### Ricing / Theming
-picom
-papirus-icon-theme
-rofi
-plank
-conky
-everforest-gtk-theme-git
-xfce4-weather-plugin
-xfce4-systemload-plugin
+picom  
+papirus-icon-theme  
+rofi  
+conky  
+sassc  
+everforest-gtk-theme (cloned from github)  
+xfce4-weather-plugin  
+xfce4-systemload-plugin  
 
-
+### Other
+lazys3 (nahamsec - cloned from github)  
