@@ -243,7 +243,8 @@ sudo pacman -S --noconfirm \
     net-tools \
     btop \
     python \
-    python-pip
+    python-pip \
+    simplescreenrecorder
     
 
 # -----------------------------
@@ -427,6 +428,17 @@ xfconf-query -c xfce4-desktop -l | grep image-style | while read -r path; do
 done
 
 sudo cp -f ~/wallpapers/0327.jpg /usr/share/backgrounds/xfce/xfce-x.svg
+
+# -----------------------------
+# LIGHTDM GREETER THEME
+# -----------------------------
+log "Configuring LightDM greeter to match Everforest theme..."
+if [ -f "$DOT_DIR/lightdm-gtk-greeter.conf" ]; then
+    sudo cp "$DOT_DIR/lightdm-gtk-greeter.conf" /etc/lightdm/lightdm-gtk-greeter.conf
+    # Copy Everforest theme to system-wide location so greeter (running as root) can access it
+    sudo mkdir -p /usr/share/themes
+    sudo cp -r "$HOME/.themes/Everforest-Green-Dark" /usr/share/themes/ 2>/dev/null || true
+fi
 
 GO_BIN="$HOME/.local/bin"
 
