@@ -14,7 +14,7 @@
 
 
 
-### Drew's Auto-Rice Bootstrapping Scripts
+### Drew's Auto-Rice Bug Bounty Bootstrapping Scripts
 
 I stole this idea from Luke Smith's LARBS.
 
