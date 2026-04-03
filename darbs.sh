@@ -174,7 +174,16 @@ sudo pacman -S --noconfirm \
     bettercap \
     macchanger \
     maltego \
-    exploitdb
+    exploitdb \
+    dnsenum \
+    searchsploit \
+    dirb \
+    cewl \
+    wifite \
+    reaver \
+    foremost \
+    socat
+
 
 # -----------------------------
 # INSTALL GO
@@ -199,11 +208,16 @@ go install github.com/hahwul/dalfox/v2@latest
 go install github.com/s0md3v/smap/cmd/smap@latest
 go install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
 go install github.com/sensepost/gowitness@latest
+go install github.com/projectdiscovery/dnsx/cmd/dnsx@latest
+
 
 # -----------------------------
 # PYTHON SECURITY TOOLS
 # -----------------------------
-#log "Installing Python security tools..."
+log "Installing Python security tools..."
+
+pip install --user xsstrike
+done
 
 # -----------------------------
 # NAHAMSEC TOOLS
@@ -228,6 +242,7 @@ sudo pacman -S --noconfirm \
     inetutils \
     net-tools \
     btop \
+    python \
     python-pip
     
 
@@ -264,7 +279,8 @@ yay -S --noconfirm \
  peek \
  ttf-jetbrains-mono-nerd \
  ghidra \
- drawio-desktop-bin
+ drawio-desktop-bin \
+ beef-xss
 
 
 
