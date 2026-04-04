@@ -35,7 +35,7 @@ set -e
 LOGFILE="$HOME/darbs.log"
 exec > >(tee -a "$LOGFILE") 2>&1
 
-echo "=== DARBS (Drew's Auto-Rice Bug Bounty Bootstrapping Script) ==="
+echo "=== DARBS (Drew's Auto-Rice Bug Bounty Bootstrapping Scripts) ==="
 
 # -----------------------------
 # CONFIG (EDIT THIS)
