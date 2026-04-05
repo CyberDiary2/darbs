@@ -490,7 +490,8 @@ export PATH=$HOME/go/bin:$HOME/.local/bin:$PATH
 GO111MODULE=on go_install github.com/projectdiscovery/httpx/cmd/httpx@latest
 go_install github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
 go_install github.com/tomnomnom/assetfinder@latest
-pip install --user gf-patterns
+mkdir -p "$HOME/.gf"
+git clone --depth 1 https://github.com/1ndianl33t/Gf-Patterns /tmp/gf-patterns 2>/dev/null && cp /tmp/gf-patterns/*.json "$HOME/.gf/" && rm -rf /tmp/gf-patterns
 echo 'export PATH=$HOME/go/bin:$HOME/.local/bin:$PATH' >> ~/.bashrc
 
 # -----------------------------
