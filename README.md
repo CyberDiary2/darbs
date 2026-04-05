@@ -33,6 +33,8 @@ chmod +x darbs.sh
 
 Run on a fresh Arch install. Reboot when it finishes.
 
+Already-installed packages and tools are detected and skipped, so re-running the script is safe.
+
 
 
 ### Core

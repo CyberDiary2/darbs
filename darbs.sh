@@ -52,6 +52,45 @@ RESET="\e[0m"
 
 log() { echo -e "${GREEN}==>${RESET} $1"; }
 
+pacman_install() {
+    local to_install=()
+    for pkg in "$@"; do
+        if pacman -Qi "$pkg" &>/dev/null; then
+            log "Skipping $pkg (already installed)"
+        else
+            to_install+=("$pkg")
+        fi
+    done
+    if [ ${#to_install[@]} -gt 0 ]; then
+        sudo pacman -S --noconfirm "${to_install[@]}"
+    fi
+}
+
+go_install() {
+    local pkg="$1"
+    local bin
+    bin="$(basename "${pkg%%@*}")"
+    if command -v "$bin" &>/dev/null; then
+        log "Skipping $bin (already installed)"
+    else
+        go install "$pkg"
+    fi
+}
+
+yay_install() {
+    local to_install=()
+    for pkg in "$@"; do
+        if pacman -Qi "$pkg" &>/dev/null; then
+            log "Skipping $pkg (already installed)"
+        else
+            to_install+=("$pkg")
+        fi
+    done
+    if [ ${#to_install[@]} -gt 0 ]; then
+        yay -S --noconfirm "${to_install[@]}"
+    fi
+}
+
 # -----------------------------
 # SYSTEM UPDATE
 # -----------------------------
@@ -62,7 +101,7 @@ sudo pacman -Syu --noconfirm
 # BASE SYSTEM + XFCE
 # -----------------------------
 log "Installing XFCE and core packages..."
-sudo pacman -S --noconfirm \
+pacman_install \
     xorg \
     xfce4 xfce4-goodies \
     xfce4-terminal \
@@ -132,7 +171,7 @@ fi
 # BUG BOUNTY + SECURITY TOOLS
 # -----------------------------
 log "Installing bug bounty and security tools..."
-sudo pacman -S --noconfirm \
+pacman_install \
     nmap \
     burpsuite \
     sqlmap \
@@ -188,7 +227,7 @@ sudo pacman -S --noconfirm \
 # INSTALL GO
 # -----------------------------
 log "Installing Go..."
-sudo pacman -S --noconfirm go
+pacman_install go
 
 # -----------------------------
 # TOMNOMNOM TOOLS (Go)
@@ -197,17 +236,17 @@ log "Installing Tomnomnom Go tools..."
 export PATH=$PATH:/usr/lib/go/bin
 export GOPATH="$HOME/go"
 
-go install github.com/tomnomnom/waybackurls@latest
-go install github.com/tomnomnom/httprobe@latest
-go install github.com/tomnomnom/gf@latest
-go install github.com/tomnomnom/assetfinder@latest
-go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
-go install github.com/projectdiscovery/katana/cmd/katana@latest
-go install github.com/hahwul/dalfox/v2@latest
-go install github.com/s0md3v/smap/cmd/smap@latest
-go install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
-go install github.com/sensepost/gowitness@latest
-go install github.com/projectdiscovery/dnsx/cmd/dnsx@latest
+go_install github.com/tomnomnom/waybackurls@latest
+go_install github.com/tomnomnom/httprobe@latest
+go_install github.com/tomnomnom/gf@latest
+go_install github.com/tomnomnom/assetfinder@latest
+go_install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+go_install github.com/projectdiscovery/katana/cmd/katana@latest
+go_install github.com/hahwul/dalfox/v2@latest
+go_install github.com/s0md3v/smap/cmd/smap@latest
+go_install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
+go_install github.com/sensepost/gowitness@latest
+go_install github.com/projectdiscovery/dnsx/cmd/dnsx@latest
 
 
 # -----------------------------
@@ -228,7 +267,7 @@ go install github.com/projectdiscovery/dnsx/cmd/dnsx@latest
 # EXTRA UTILITIES
 # -----------------------------
 log "Installing extra utilities..."
-sudo pacman -S --noconfirm \
+pacman_install \
     ncdu \
     ripgrep \
     fd \
@@ -266,7 +305,7 @@ fi
 # -----------------------------
 log "Installing AUR packages: VSCodium..."
 #paru -S --noconfirm vscodium-bin
-yay -S --noconfirm \
+yay_install \
  vscodium-bin \
  obsidian \
  nuclei \
@@ -447,7 +486,12 @@ mkdir -p "$GO_BIN"
 # MORE GO 
 #------------------------------
 
-export PATH=$HOME/go/bin:$HOME/.local/bin:$PATH && GO111MODULE=on go install github.com/projectdiscovery/httpx/cmd/httpx@latest github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest github.com/tomnomnom/assetfinder@latest && pip install --user gf-patterns && echo 'export PATH=$HOME/go/bin:$HOME/.local/bin:$PATH' >> ~/.bashrc
+export PATH=$HOME/go/bin:$HOME/.local/bin:$PATH
+GO111MODULE=on go_install github.com/projectdiscovery/httpx/cmd/httpx@latest
+go_install github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
+go_install github.com/tomnomnom/assetfinder@latest
+pip install --user gf-patterns
+echo 'export PATH=$HOME/go/bin:$HOME/.local/bin:$PATH' >> ~/.bashrc
 
 # -----------------------------
 # FINISH
