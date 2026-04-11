@@ -38,6 +38,25 @@ exec > >(tee -a "$LOGFILE") 2>&1
 echo "=== DARBS (Drew's Auto-Rice Bug Bounty Bootstrapping Scripts) ==="
 
 # -----------------------------
+# DISTRO DETECTION
+# -----------------------------
+# Detect whether this is plain Arch or BlackArch (Arch with the blackarch repo
+# already configured). When running on BlackArch the strap.sh bootstrap is
+# skipped entirely, and most security tools will already be present so the
+# pacman_install helper short circuits them. Vanilla Arch goes through the
+# full bootstrap path.
+IS_BLACKARCH=false
+if grep -qE '^\[blackarch\]' /etc/pacman.conf 2>/dev/null; then
+    IS_BLACKARCH=true
+fi
+
+if [ "$IS_BLACKARCH" = true ]; then
+    echo -e "\e[34m==> Detected BlackArch. Will skip strap.sh bootstrap.\e[0m"
+else
+    echo -e "\e[34m==> Detected vanilla Arch. Will bootstrap BlackArch repo.\e[0m"
+fi
+
+# -----------------------------
 # CONFIG (EDIT THIS)
 # -----------------------------
 DOTFILES_REPO="https://github.com/CyberDiary2/dotfiles"
@@ -154,17 +173,30 @@ pacman_install \
 # -----------------------------
 log "Enabling services..."
 sudo systemctl enable NetworkManager
+
+# Disable any other display manager that might already be enabled before
+# enabling lightdm. BlackArch ISOs and some Arch installs ship with sddm,
+# gdm, lxdm, etc.; having two enabled at once causes a graphical boot conflict.
+for dm in sddm gdm lxdm xdm; do
+    if systemctl is-enabled "$dm" &>/dev/null; then
+        log "Disabling existing display manager: $dm"
+        sudo systemctl disable "$dm"
+    fi
+done
 sudo systemctl enable lightdm
 
 # -----------------------------
 # ADD BLACKARCH REPO
 # -----------------------------
-log "Adding BlackArch repository..."
-if ! grep -q "blackarch" /etc/pacman.conf; then
+if [ "$IS_BLACKARCH" = false ]; then
+    log "Adding BlackArch repository..."
     curl -O https://blackarch.org/strap.sh
     chmod +x strap.sh
     sudo ./strap.sh
     rm strap.sh
+    sudo pacman -Sy --noconfirm
+else
+    log "BlackArch repo already present, skipping bootstrap."
 fi
 
 # -----------------------------
