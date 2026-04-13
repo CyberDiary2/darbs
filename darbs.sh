@@ -173,6 +173,16 @@ pacman_install \
 # -----------------------------
 log "Enabling services..."
 sudo systemctl enable NetworkManager
+sudo systemctl start NetworkManager
+
+# -----------------------------
+# WIFI SETUP
+# -----------------------------
+log "Checking for WiFi connectivity..."
+if ! ping -c 1 -W 3 archlinux.org &>/dev/null; then
+    log "No internet detected. Launching WiFi setup..."
+    nmtui connect
+fi
 
 # Disable any other display manager that might already be enabled before
 # enabling lightdm. BlackArch ISOs and some Arch installs ship with sddm,
