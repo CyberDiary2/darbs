@@ -48,12 +48,62 @@ apt_install() {
     fi
 }
 
+snap_install() {
+    for pkg in "$@"; do
+        if snap list "$pkg" &>/dev/null 2>&1; then
+            log "Skipping $pkg (already installed via snap)"
+        else
+            sudo snap install "$pkg"
+        fi
+    done
+}
+
+snap_install_classic() {
+    for pkg in "$@"; do
+        if snap list "$pkg" &>/dev/null 2>&1; then
+            log "Skipping $pkg (already installed via snap)"
+        else
+            sudo snap install "$pkg" --classic
+        fi
+    done
+}
+
+# try apt first, fall back to snap
+apt_or_snap() {
+    local pkg="$1"
+    local snap_name="${2:-$1}"
+    local classic="${3:-}"
+    if dpkg -s "$pkg" &>/dev/null || snap list "$snap_name" &>/dev/null 2>&1; then
+        log "Skipping $pkg (already installed)"
+        return
+    fi
+    if apt-cache show "$pkg" &>/dev/null 2>&1; then
+        sudo apt install -y "$pkg"
+    else
+        log "$pkg not found in apt, installing via snap..."
+        if [ "$classic" = "classic" ]; then
+            sudo snap install "$snap_name" --classic
+        else
+            sudo snap install "$snap_name"
+        fi
+    fi
+}
+
 # -----------------------------
-# VERIFY DEBIAN
+# VERIFY DEBIAN/UBUNTU
 # -----------------------------
 if ! grep -qi 'debian\|ubuntu' /etc/os-release 2>/dev/null; then
-    echo "This script is for Debian based systems only."
+    echo "This script is for Debian and Ubuntu based systems only."
     exit 1
+fi
+
+# detect distro
+IS_UBUNTU=false
+if grep -qi 'ubuntu' /etc/os-release 2>/dev/null; then
+    IS_UBUNTU=true
+    echo -e "${BLUE}==> Detected Ubuntu based system.${RESET}"
+else
+    echo -e "${BLUE}==> Detected Debian based system.${RESET}"
 fi
 
 # -----------------------------
@@ -63,9 +113,38 @@ log "Updating system..."
 sudo apt update && sudo apt upgrade -y
 
 # -----------------------------
+# INSTALL SNAP (if not present)
+# -----------------------------
+if [ "$IS_UBUNTU" = true ]; then
+    if ! command -v snap &>/dev/null; then
+        log "Installing snapd..."
+        sudo apt install -y snapd
+        sudo systemctl enable snapd
+        sudo systemctl start snapd
+        sudo ln -sf /var/lib/snapd/snap /snap 2>/dev/null || true
+    else
+        log "Skipping snapd (already installed)"
+    fi
+fi
+
+# -----------------------------
 # BASE PACKAGES
 # -----------------------------
 log "Installing base packages..."
+# set firefox package name based on distro
+if [ "$IS_UBUNTU" = true ]; then
+    FIREFOX_PKG="firefox"
+else
+    FIREFOX_PKG="firefox-esr"
+fi
+
+# fastfetch may not be in older repos, add ppa on ubuntu
+if [ "$IS_UBUNTU" = true ] && ! apt-cache show fastfetch &>/dev/null; then
+    log "Adding fastfetch PPA..."
+    sudo add-apt-repository -y ppa:zhangsongcui3371/fastfetch 2>/dev/null || true
+    sudo apt update
+fi
+
 apt_install \
     xfce4 xfce4-goodies \
     xfce4-terminal \
@@ -87,7 +166,7 @@ apt_install \
     tree \
     rsync \
     build-essential \
-    firefox-esr \
+    "$FIREFOX_PKG" \
     flameshot \
     fastfetch \
     libreoffice \
@@ -119,7 +198,7 @@ sudo systemctl start NetworkManager
 # WIFI SETUP
 # -----------------------------
 log "Checking for connectivity..."
-if ! ping -c 1 -W 3 debian.org &>/dev/null; then
+if ! ping -c 1 -W 3 google.com &>/dev/null; then
     log "No internet detected. Launching WiFi setup..."
     nmtui connect
 fi

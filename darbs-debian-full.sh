@@ -41,6 +41,36 @@ apt_install() {
     fi
 }
 
+snap_install_classic() {
+    for pkg in "$@"; do
+        if snap list "$pkg" &>/dev/null 2>&1; then
+            log "Skipping $pkg (already installed via snap)"
+        else
+            sudo snap install "$pkg" --classic
+        fi
+    done
+}
+
+apt_or_snap() {
+    local pkg="$1"
+    local snap_name="${2:-$1}"
+    local classic="${3:-}"
+    if dpkg -s "$pkg" &>/dev/null || snap list "$snap_name" &>/dev/null 2>&1; then
+        log "Skipping $pkg (already installed)"
+        return
+    fi
+    if apt-cache show "$pkg" &>/dev/null 2>&1; then
+        sudo apt install -y "$pkg"
+    else
+        log "$pkg not found in apt, installing via snap..."
+        if [ "$classic" = "classic" ]; then
+            sudo snap install "$snap_name" --classic
+        else
+            sudo snap install "$snap_name"
+        fi
+    fi
+}
+
 go_install() {
     local pkg="$1"
     local bin
@@ -139,11 +169,7 @@ fi
 
 # zaproxy
 log "Installing OWASP ZAP..."
-if ! command -v zaproxy &>/dev/null && ! command -v zap &>/dev/null; then
-    sudo snap install zaproxy --classic 2>/dev/null || log "ZAP: install snap or download from zaproxy.org"
-else
-    log "Skipping ZAP (already installed)"
-fi
+apt_or_snap zaproxy zaproxy classic
 
 # -----------------------------
 # INSTALL GO
@@ -198,8 +224,7 @@ fi
 # EXTRA DEBIAN PACKAGES
 # -----------------------------
 log "Installing additional tools..."
-apt_install \
-    obsidian 2>/dev/null || true
+apt_or_snap obsidian obsidian classic
 
 # vscodium
 log "Installing VSCodium..."
