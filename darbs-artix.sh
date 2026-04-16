@@ -103,15 +103,6 @@ fi
 log "Initializing pacman keyring..."
 sudo mkdir -p /etc/pacman.d/gnupg
 sudo chmod 700 /etc/pacman.d/gnupg
-sudo gpg --homedir /etc/pacman.d/gnupg --gen-key --batch <<GPGEOF
-%no-protection
-Key-Type: RSA
-Key-Length: 2048
-Name-Real: Pacman Keyring
-Name-Email: pacman@localhost
-Expire-Date: 0
-%commit
-GPGEOF
 sudo pacman-key --init
 sudo pacman-key --populate artix
 sudo pacman -Sy --noconfirm
@@ -202,6 +193,10 @@ sudo pacman -Syu --noconfirm
 # -----------------------------
 if ! grep -q '^\[extra\]' /etc/pacman.conf 2>/dev/null; then
     log "Adding Arch repos to pacman.conf..."
+    # install artix-archlinux-support FIRST so mirrorlist-arch exists
+    # before pacman.conf references it
+    sudo pacman -S --noconfirm artix-archlinux-support
+    sudo pacman-key --populate archlinux
     sudo tee -a /etc/pacman.conf > /dev/null <<'EOF'
 
 [extra]
@@ -210,8 +205,6 @@ Include = /etc/pacman.d/mirrorlist-arch
 [multilib]
 Include = /etc/pacman.d/mirrorlist-arch
 EOF
-    # install arch mirrorlist if not present
-    pacman_install artix-archlinux-support
     sudo pacman -Sy --noconfirm
 fi
 
