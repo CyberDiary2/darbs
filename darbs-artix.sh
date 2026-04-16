@@ -102,6 +102,16 @@ fi
 # -----------------------------
 log "Initializing pacman keyring..."
 sudo mkdir -p /etc/pacman.d/gnupg
+sudo chmod 700 /etc/pacman.d/gnupg
+sudo gpg --homedir /etc/pacman.d/gnupg --gen-key --batch <<GPGEOF
+%no-protection
+Key-Type: RSA
+Key-Length: 2048
+Name-Real: Pacman Keyring
+Name-Email: pacman@localhost
+Expire-Date: 0
+%commit
+GPGEOF
 sudo pacman-key --init
 sudo pacman-key --populate artix
 sudo pacman -Sy --noconfirm
