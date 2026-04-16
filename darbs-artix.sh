@@ -101,8 +101,7 @@ fi
 # INITIALIZE PACMAN KEYRING
 # -----------------------------
 log "Initializing pacman keyring..."
-sudo mkdir -p /etc/pacman.d/gnupg
-sudo chmod 700 /etc/pacman.d/gnupg
+sudo rm -rf /etc/pacman.d/gnupg
 sudo pacman-key --init
 sudo pacman-key --populate artix
 sudo pacman -Sy --noconfirm
