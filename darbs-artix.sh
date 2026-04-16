@@ -88,6 +88,24 @@ if ! grep -qi 'artix' /etc/os-release 2>/dev/null; then
 fi
 
 # -----------------------------
+# VERIFY PACMAN EXISTS
+# -----------------------------
+if ! command -v pacman &>/dev/null; then
+    echo "ERROR: pacman not found in PATH."
+    echo "Make sure you are running this on Artix Linux with pacman installed."
+    echo "Try: export PATH=\$PATH:/usr/bin"
+    exit 1
+fi
+
+# -----------------------------
+# INITIALIZE PACMAN KEYRING
+# -----------------------------
+log "Initializing pacman keyring..."
+sudo pacman-key --init
+sudo pacman-key --populate artix
+sudo pacman -Sy --noconfirm
+
+# -----------------------------
 # DETECT INIT SYSTEM
 # -----------------------------
 INIT_SYS=""
