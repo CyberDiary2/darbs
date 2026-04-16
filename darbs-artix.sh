@@ -98,14 +98,21 @@ if ! command -v pacman &>/dev/null; then
 fi
 
 # -----------------------------
+# FIX BROKEN PACMAN.CONF (from failed previous runs)
+# -----------------------------
+if grep -q 'mirrorlist-arch' /etc/pacman.conf 2>/dev/null && [ ! -f /etc/pacman.d/mirrorlist-arch ]; then
+    log "Fixing broken Arch repo entries in pacman.conf..."
+    sudo sed -i '/^\[extra\]/,/^$/d' /etc/pacman.conf
+    sudo sed -i '/^\[multilib\]/,/^$/d' /etc/pacman.conf
+    sudo sed -i '/mirrorlist-arch/d' /etc/pacman.conf
+fi
+
+# -----------------------------
 # INITIALIZE PACMAN KEYRING
 # -----------------------------
 log "Initializing pacman keyring..."
 sudo killall gpg-agent dirmngr 2>/dev/null || true
 sudo rm -rf /etc/pacman.d/gnupg
-sudo mkdir -p /etc/pacman.d/gnupg
-sudo chmod 700 /etc/pacman.d/gnupg
-sudo gpg --no-default-keyring --keyring /etc/pacman.d/gnupg/pubring.gpg --fingerprint 2>/dev/null || true
 sudo pacman-key --init
 sudo pacman-key --populate artix
 sudo pacman -Sy --noconfirm
@@ -194,15 +201,6 @@ sudo pacman -Syu --noconfirm
 # -----------------------------
 # ADD ARCH REPOS (if needed)
 # -----------------------------
-# if mirrorlist-arch is referenced in pacman.conf but the file doesn't exist,
-# remove the broken entries so pacman can function
-if grep -q 'mirrorlist-arch' /etc/pacman.conf 2>/dev/null && [ ! -f /etc/pacman.d/mirrorlist-arch ]; then
-    log "Fixing broken Arch repo entries in pacman.conf..."
-    sudo sed -i '/^\[extra\]/,/^$/d' /etc/pacman.conf
-    sudo sed -i '/^\[multilib\]/,/^$/d' /etc/pacman.conf
-    sudo sed -i '/mirrorlist-arch/d' /etc/pacman.conf
-fi
-
 if ! grep -q '^\[extra\]' /etc/pacman.conf 2>/dev/null; then
     log "Adding Arch repos to pacman.conf..."
     # install artix-archlinux-support FIRST so mirrorlist-arch exists
