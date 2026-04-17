@@ -100,7 +100,7 @@ go_install() {
 pip_install() {
     # use a venv to avoid externally-managed-environment error
     if [ ! -d "$HOME/.darbs-venv" ]; then
-        python3 -m venv "$HOME/.darbs-venv"
+        python3 -m venv --system-site-packages "$HOME/.darbs-venv"
     fi
     for pkg in "$@"; do
         if "$HOME/.darbs-venv/bin/pip" show "$pkg" >/dev/null 2>&1; then
