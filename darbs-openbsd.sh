@@ -161,7 +161,7 @@ pkg_install \
 # BUILD WHISKERMENU FROM SOURCE
 # -----------------------------
 log "Building xfce4-whiskermenu-plugin from source..."
-pkg_install cmake gtk+3 garcon
+pkg_install cmake gtk+3 garcon gettext-tools
 if ! pkg_info -e xfce4-whiskermenu-plugin >/dev/null 2>&1; then
     WHISKER_VER="2.8.3"
     rm -rf /tmp/whiskermenu-build
