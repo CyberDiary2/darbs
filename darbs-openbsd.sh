@@ -557,6 +557,88 @@ EOF
 chmod +x "$HOME/.xsession"
 
 # -----------------------------
+# SECURITY TOOLS MENU ENTRIES
+# -----------------------------
+log "Creating menu entries for security tools..."
+APPS_DIR="$HOME/.local/share/applications"
+mkdir -p "$APPS_DIR"
+
+# helper to create a .desktop file that opens in a terminal
+make_entry() {
+    local name="$1"
+    local exec="$2"
+    local comment="$3"
+    local filename="$(echo "$name" | tr ' ' '-' | tr '[:upper:]' '[:lower:]')"
+    cat > "$APPS_DIR/${filename}.desktop" <<DESKEOF
+[Desktop Entry]
+Type=Application
+Name=${name}
+Exec=xfce4-terminal -e "${exec}"
+Comment=${comment}
+Icon=utilities-terminal
+Terminal=false
+Categories=Security;System;
+DESKEOF
+}
+
+# port/pkg tools
+make_entry "Nmap" "nmap" "Network scanner"
+make_entry "Nikto" "nikto" "Web server scanner"
+make_entry "Hydra" "hydra" "Password brute forcer"
+make_entry "John the Ripper" "john" "Password cracker"
+make_entry "Hashcat" "hashcat" "GPU password cracker"
+make_entry "Masscan" "masscan" "Fast port scanner"
+make_entry "Aircrack-ng" "aircrack-ng" "WiFi security tools"
+make_entry "Tcpdump" "doas tcpdump -i any" "Packet capture"
+make_entry "Socat" "socat" "Multipurpose relay"
+make_entry "Macchanger" "macchanger" "MAC address changer"
+make_entry "Foremost" "foremost" "File carver"
+
+# wireshark has its own .desktop but add it to security category
+if command -v wireshark >/dev/null 2>&1; then
+    make_entry "Wireshark" "wireshark" "Network protocol analyzer"
+    # wireshark is GUI, fix the exec
+    cat > "$APPS_DIR/wireshark.desktop" <<DESKEOF
+[Desktop Entry]
+Type=Application
+Name=Wireshark
+Exec=wireshark
+Comment=Network protocol analyzer
+Icon=wireshark
+Terminal=false
+Categories=Security;Network;
+DESKEOF
+fi
+
+# pip tools
+make_entry "SQLMap" "sqlmap" "SQL injection tool"
+make_entry "Wfuzz" "wfuzz" "Web fuzzer"
+make_entry "Dirsearch" "dirsearch" "Directory brute forcer"
+make_entry "Mitmproxy" "mitmproxy" "HTTP proxy"
+make_entry "theHarvester" "theHarvester" "OSINT email/domain harvester"
+
+# go tools
+make_entry "Subfinder" "subfinder" "Subdomain discovery"
+make_entry "Nuclei" "nuclei" "Vulnerability scanner"
+make_entry "Httpx" "httpx" "HTTP prober"
+make_entry "Katana" "katana" "Web crawler"
+make_entry "Dalfox" "dalfox" "XSS scanner"
+make_entry "Naabu" "naabu" "Port scanner"
+make_entry "Gobuster" "gobuster" "Directory/DNS brute forcer"
+make_entry "FFuf" "ffuf" "Fast web fuzzer"
+make_entry "Waybackurls" "waybackurls" "Wayback Machine URL fetcher"
+make_entry "Assetfinder" "assetfinder" "Subdomain finder"
+make_entry "Httprobe" "httprobe" "HTTP/HTTPS prober"
+make_entry "DNSx" "dnsx" "DNS toolkit"
+make_entry "Gowitness" "gowitness" "Web screenshot tool"
+make_entry "Gf" "gf" "Grep pattern wrapper"
+
+# binwalk
+make_entry "Binwalk" "binwalk" "Firmware analysis"
+
+log "Menu entries created."
+
+# -----------------------------
 # PF FIREWALL (basic config)
 # -----------------------------
 log "Setting up basic pf firewall..."
