@@ -135,8 +135,6 @@ pkg_install \
     xfce \
     xfce-extras \
     xfce4-terminal \
-    xfce4-weather-plugin \
-    xfce4-systemload-plugin \
     git \
     curl \
     wget \
