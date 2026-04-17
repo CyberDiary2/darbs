@@ -142,7 +142,6 @@ pkg_install \
     htop \
     tree \
     rsync-- \
-    tmux \
     wmctrl \
     firefox-esr \
     libreoffice \
