@@ -23,7 +23,7 @@ printf "\033[38;5;22m
 \033[0m\n"
 echo "=== DARBS (OpenBSD) ==="
 
-set -e
+# not using set -e so one failed package doesn't kill the whole script
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOGFILE="$HOME/darbs.log"
