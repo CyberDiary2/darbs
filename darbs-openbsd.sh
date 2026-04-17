@@ -132,7 +132,6 @@ pkg_install \
     xfce-extras \
     xfce4-terminal \
     xfce4-power-manager \
-    recordmydesktop \
     ffmpeg \
     git \
     curl \
