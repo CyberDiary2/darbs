@@ -128,13 +128,12 @@ pkg_install bash bash-completion
 # -----------------------------
 log "Installing XFCE and core packages..."
 pkg_install \
-    xfce4 \
-    xfce4-extras \
+    xfce \
+    xfce-extras \
     xfce4-terminal \
     xfce4-weather-plugin \
     xfce4-systemload-plugin \
     xfce4-whiskermenu-plugin \
-    xenodm-- \
     git \
     curl \
     wget \
