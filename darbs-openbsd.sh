@@ -235,6 +235,91 @@ pkg_install \
 # tcpdump and nc are already in OpenBSD base
 
 # -----------------------------
+# BUILD SECURITY TOOLS FROM SOURCE
+# -----------------------------
+log "Building security tools from source..."
+pkg_install autoconf automake libtool pcre openssl libpcap libusb1
+
+# hashcat
+if ! command -v hashcat >/dev/null 2>&1; then
+    log "Building hashcat..."
+    rm -rf /tmp/hashcat-build
+    git clone --depth 1 https://github.com/hashcat/hashcat.git /tmp/hashcat-build
+    cd /tmp/hashcat-build
+    gmake || make
+    doas gmake install || doas make install
+    cd /
+    rm -rf /tmp/hashcat-build
+else
+    log "Skipping hashcat (already installed)"
+fi
+
+# masscan
+if ! command -v masscan >/dev/null 2>&1; then
+    log "Building masscan..."
+    rm -rf /tmp/masscan-build
+    git clone --depth 1 https://github.com/robertdavidgraham/masscan.git /tmp/masscan-build
+    cd /tmp/masscan-build
+    gmake || make
+    doas cp bin/masscan /usr/local/bin/
+    cd /
+    rm -rf /tmp/masscan-build
+else
+    log "Skipping masscan (already installed)"
+fi
+
+# macchanger
+if ! command -v macchanger >/dev/null 2>&1; then
+    log "Building macchanger..."
+    rm -rf /tmp/macchanger-build
+    git clone --depth 1 https://github.com/alobbs/macchanger.git /tmp/macchanger-build
+    cd /tmp/macchanger-build
+    autoreconf -i 2>/dev/null || true
+    ./configure --prefix=/usr/local
+    make
+    doas make install
+    cd /
+    rm -rf /tmp/macchanger-build
+else
+    log "Skipping macchanger (already installed)"
+fi
+
+# foremost
+if ! command -v foremost >/dev/null 2>&1; then
+    log "Building foremost..."
+    rm -rf /tmp/foremost-build
+    git clone --depth 1 https://github.com/korczis/foremost.git /tmp/foremost-build
+    cd /tmp/foremost-build
+    make
+    doas make install PREFIX=/usr/local
+    cd /
+    rm -rf /tmp/foremost-build
+else
+    log "Skipping foremost (already installed)"
+fi
+
+# aircrack-ng
+if ! command -v aircrack-ng >/dev/null 2>&1; then
+    log "Building aircrack-ng..."
+    rm -rf /tmp/aircrack-build
+    git clone --depth 1 https://github.com/aircrack-ng/aircrack-ng.git /tmp/aircrack-build
+    cd /tmp/aircrack-build
+    autoreconf -i
+    ./configure --prefix=/usr/local
+    make
+    doas make install
+    cd /
+    rm -rf /tmp/aircrack-build
+else
+    log "Skipping aircrack-ng (already installed)"
+fi
+
+# binwalk (pip install)
+if ! command -v binwalk >/dev/null 2>&1; then
+    log "Installing binwalk via pip..."
+fi
+
+# -----------------------------
 # PYTHON + PIP SECURITY TOOLS
 # -----------------------------
 log "Installing Python and pip-based tools..."
@@ -249,7 +334,8 @@ pip_install \
     theharvester \
     cewl \
     sqlmap \
-    mitmproxy
+    mitmproxy \
+    binwalk
 
 # -----------------------------
 # INSTALL GO
