@@ -102,11 +102,15 @@ go_install() {
 }
 
 pip_install() {
+    # use a venv to avoid externally-managed-environment error
+    if [ ! -d "$HOME/.darbs-venv" ]; then
+        python3 -m venv "$HOME/.darbs-venv"
+    fi
     for pkg in "$@"; do
-        if pip3 show "$pkg" >/dev/null 2>&1; then
+        if "$HOME/.darbs-venv/bin/pip" show "$pkg" >/dev/null 2>&1; then
             log "Skipping $pkg (already installed)"
         else
-            pip3 install --user "$pkg"
+            "$HOME/.darbs-venv/bin/pip" install "$pkg"
         fi
     done
 }
@@ -332,12 +336,12 @@ if [ -f "$DOT_DIR/bashrc" ]; then
 fi
 # append OpenBSD-specific paths
 cat >> "$HOME/.bashrc" <<'BASHEOF'
-export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin:$HOME/.local/bin
+export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin:$HOME/.local/bin:$HOME/.darbs-venv/bin
 BASHEOF
 
 # ksh profile (OpenBSD default shell)
 cat >> "$HOME/.profile" <<'PROFILEEOF'
-export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin:$HOME/.local/bin
+export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin:$HOME/.local/bin:$HOME/.darbs-venv/bin
 export ENV=$HOME/.kshrc
 PROFILEEOF
 
@@ -347,7 +351,7 @@ PS1='\[\033[32m\]\u@\h\[\033[0m\]:\[\033[34m\]\w\[\033[0m\]\$ '
 alias ll='ls -la'
 alias la='ls -a'
 alias grep='grep --color=auto'
-export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin:$HOME/.local/bin
+export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin:$HOME/.local/bin:$HOME/.darbs-venv/bin
 KSHEOF
 
 # nanorc
@@ -467,7 +471,7 @@ fi
 
 # set XFCE as default session
 cat > "$HOME/.xsession" <<'EOF'
-export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin:$HOME/.local/bin
+export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin:$HOME/.local/bin:$HOME/.darbs-venv/bin
 exec startxfce4
 EOF
 chmod +x "$HOME/.xsession"
