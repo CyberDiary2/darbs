@@ -327,7 +327,8 @@ fi
 log "Installing Python and pip-based tools..."
 pkg_install \
     python3 \
-    py3-pip
+    py3-pip \
+    py3-curl
 
 pip_install \
     wfuzz \
