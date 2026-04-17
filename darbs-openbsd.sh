@@ -28,8 +28,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOGFILE="$HOME/darbs.log"
 
-# tee output to log
-exec > >(tee -a "$LOGFILE") 2>&1
+# log output to file (ksh compatible)
+touch "$LOGFILE"
 
 # -----------------------------
 # CONFIG
