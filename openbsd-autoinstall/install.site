@@ -1,0 +1,38 @@
+#!/bin/ksh
+#
+# install.site - runs as root after OpenBSD install completes
+# Sets up doas, clones darbs, and schedules it to run on first boot
+#
+
+# configure doas
+echo 'permit persist :wheel' > /etc/doas.conf
+echo 'permit nopass root' >> /etc/doas.conf
+
+# add drew to wheel group
+usermod -G wheel drew
+
+# enable xenodm now so graphical login is ready on first boot
+rcctl enable xenodm
+rcctl set xenodm flags ""
+
+# create first-boot script that runs darbs as the user
+cat > /etc/rc.firsttime <<'RCEOF'
+# clone and run darbs on first boot
+su -l drew -c '
+    cd $HOME
+    pkg_add git
+    git clone https://github.com/CyberDiary2/darbs.git
+    cd darbs
+    chmod +x darbs-openbsd.sh
+    ./darbs-openbsd.sh > $HOME/darbs-firstboot.log 2>&1
+'
+RCEOF
+
+# create .xsession for drew so xfce starts after darbs finishes
+mkdir -p /home/drew
+cat > /home/drew/.xsession <<'XEOF'
+export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin:$HOME/.local/bin:$HOME/.darbs-venv/bin
+exec startxfce4
+XEOF
+chmod +x /home/drew/.xsession
+chown drew:drew /home/drew/.xsession

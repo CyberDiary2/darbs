@@ -133,6 +133,7 @@ pkg_install \
     xfce4-terminal \
     xfce4-power-manager \
     ffmpeg \
+    flameshot \
     git \
     curl \
     wget \
