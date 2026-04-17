@@ -187,6 +187,11 @@ fi
 # -----------------------------
 log "Enabling services..."
 
+# add current user to audio/video groups
+CURRENT_USER="$(whoami)"
+log "Adding $CURRENT_USER to audio, video, and staff groups..."
+doas usermod -G operator,wheel,staff "$CURRENT_USER"
+
 # enable xenodm (OpenBSD display manager)
 doas rcctl enable xenodm
 doas rcctl set xenodm flags ""
