@@ -426,12 +426,13 @@ export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin:$HOME/.local/bin:$HOME/.darbs-v
 export ENV=$HOME/.kshrc
 PROFILEEOF
 
-# kshrc
+# kshrc - ksh uses \e for escape and $PWD instead of \w
 cat > "$HOME/.kshrc" <<'KSHEOF'
-PS1='\[\033[32m\]\u@\h\[\033[0m\]:\[\033[34m\]\w\[\033[0m\]\$ '
+export PS1=$(printf '\033[38;2;127;187;179m')'\u@\h'$(printf '\033[0m')':'$(printf '\033[38;2;167;192;128m')'${PWD/#$HOME/~}'$(printf '\033[0m')'\$ '
 alias ll='ls -la'
 alias la='ls -a'
 alias grep='grep --color=auto'
+export TERM=xterm-256color
 export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin:$HOME/.local/bin:$HOME/.darbs-venv/bin
 KSHEOF
 
