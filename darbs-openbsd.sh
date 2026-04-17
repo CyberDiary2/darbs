@@ -339,7 +339,6 @@ pip_install \
     dirsearch \
     impacket \
     theharvester \
-    cewl \
     sqlmap \
     mitmproxy \
     binwalk
