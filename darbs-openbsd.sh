@@ -133,7 +133,6 @@ pkg_install \
     xfce4-terminal \
     xfce4-weather-plugin \
     xfce4-systemload-plugin \
-    xfce4-whiskermenu-plugin \
     git \
     curl \
     wget \
