@@ -77,17 +77,13 @@ fi
 # PACKAGE INSTALL HELPER
 # -----------------------------
 pkg_install() {
-    local to_install=""
     for pkg in "$@"; do
         if pkg_info -e "$pkg" >/dev/null 2>&1; then
             log "Skipping $pkg (already installed)"
         else
-            to_install="$to_install $pkg"
+            doas pkg_add "$pkg" || warn "Could not install $pkg, skipping"
         fi
     done
-    if [ -n "$to_install" ]; then
-        doas pkg_add $to_install
-    fi
 }
 
 go_install() {
@@ -135,6 +131,7 @@ pkg_install \
     xfce \
     xfce-extras \
     xfce4-terminal \
+    xfce4-power-manager \
     git \
     curl \
     wget \
@@ -229,21 +226,11 @@ fi
 log "Installing security tools from ports..."
 pkg_install \
     nmap \
-    sqlmap \
     nikto \
-    gobuster \
-    ffuf \
     wireshark \
     hydra \
-    masscan \
     john \
-    hashcat \
-    mitmproxy \
-    socat \
-    aircrack-ng \
-    macchanger \
-    foremost \
-    binwalk
+    socat
 
 # tcpdump and nc are already in OpenBSD base
 
@@ -260,7 +247,9 @@ pip_install \
     dirsearch \
     impacket \
     theharvester \
-    cewl
+    cewl \
+    sqlmap \
+    mitmproxy
 
 # -----------------------------
 # INSTALL GO
@@ -289,6 +278,7 @@ go_install github.com/projectdiscovery/dnsx/cmd/dnsx@latest
 go_install github.com/projectdiscovery/httpx/cmd/httpx@latest
 go_install github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
 go_install github.com/OJ/gobuster/v3@latest
+go_install github.com/ffuf/ffuf/v2@latest
 
 # gf patterns
 mkdir -p "$HOME/.gf"
