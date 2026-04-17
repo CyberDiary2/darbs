@@ -174,7 +174,7 @@ if ! pkg_info -e xfce4-whiskermenu-plugin >/dev/null 2>&1; then
     tar xjf "xfce4-whiskermenu-plugin-${WHISKER_VER}.tar.bz2"
     cd "xfce4-whiskermenu-plugin-${WHISKER_VER}"
     mkdir build && cd build
-    cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..
+    cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DENABLE_ACCOUNTS_SERVICE=OFF ..
     make
     doas make install
     cd /
