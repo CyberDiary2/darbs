@@ -244,7 +244,7 @@ pkg_install \
 # BUILD SECURITY TOOLS FROM SOURCE
 # -----------------------------
 log "Building security tools from source..."
-pkg_install autoconf automake libtool pcre openssl libpcap libusb1
+pkg_install autoconf automake libtool pcre openssl libusb1
 
 # hashcat
 if ! command -v hashcat >/dev/null 2>&1; then
