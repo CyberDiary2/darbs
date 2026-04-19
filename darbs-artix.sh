@@ -50,7 +50,12 @@ pacman_install() {
         fi
     done
     if [ ${#to_install[@]} -gt 0 ]; then
-        sudo pacman -S --noconfirm "${to_install[@]}"
+        if ! sudo pacman -S --noconfirm "${to_install[@]}"; then
+            log "Batch pacman install failed, retrying packages individually..."
+            for pkg in "${to_install[@]}"; do
+                sudo pacman -S --noconfirm "$pkg" 2>/dev/null || log "WARNING: failed to install $pkg (skipping)"
+            done
+        fi
     fi
 }
 
@@ -75,7 +80,12 @@ yay_install() {
         fi
     done
     if [ ${#to_install[@]} -gt 0 ]; then
-        yay -S --noconfirm "${to_install[@]}"
+        if ! yay -S --noconfirm "${to_install[@]}"; then
+            log "Batch yay install failed, retrying packages individually..."
+            for pkg in "${to_install[@]}"; do
+                yay -S --noconfirm "$pkg" 2>/dev/null || log "WARNING: failed to install $pkg (skipping)"
+            done
+        fi
     fi
 }
 
@@ -205,6 +215,17 @@ service_disable() {
 }
 
 # -----------------------------
+# CPU MICROCODE
+# -----------------------------
+log "Detecting CPU vendor for microcode..."
+CPU_VENDOR="$(grep -m1 '^vendor_id' /proc/cpuinfo | awk '{print $3}')"
+case "$CPU_VENDOR" in
+    GenuineIntel) pacman_install intel-ucode ;;
+    AuthenticAMD) pacman_install amd-ucode ;;
+    *) log "Unknown CPU vendor ($CPU_VENDOR), skipping microcode" ;;
+esac
+
+# -----------------------------
 # SYSTEM UPDATE
 # -----------------------------
 log "Updating system..."
@@ -238,7 +259,11 @@ log "Installing XFCE and core packages..."
 # install init specific packages
 pacman_install \
     "networkmanager-$INIT_SYS" \
-    "lightdm-$INIT_SYS"
+    "lightdm-$INIT_SYS" \
+    "bluez-$INIT_SYS" \
+    "cups-$INIT_SYS" \
+    "tlp-$INIT_SYS" \
+    "docker-$INIT_SYS"
 
 # install xorg, skip vesa to avoid xlibre conflict
 sudo pacman -S --noconfirm --ignore xf86-video-vesa xorg 2>/dev/null || true
@@ -247,8 +272,10 @@ pacman_install \
     xfce4 xfce4-goodies \
     xfce4-terminal \
     xfce4-whiskermenu-plugin \
+    xfce4-power-manager \
     lightdm lightdm-gtk-greeter \
     networkmanager \
+    network-manager-applet \
     bash-completion \
     tmux \
     wmctrl \
@@ -283,8 +310,41 @@ pacman_install \
     conky \
     sassc \
     calcurse \
+    caligula \
+    texlive \
+    texmaker \
     xfce4-weather-plugin \
-    xfce4-systemload-plugin
+    xfce4-systemload-plugin \
+    pipewire \
+    pipewire-pulse \
+    pipewire-alsa \
+    pipewire-jack \
+    wireplumber \
+    pavucontrol \
+    alsa-utils \
+    bluez \
+    bluez-utils \
+    blueman \
+    cups \
+    cups-pdf \
+    system-config-printer \
+    ghostscript \
+    tlp \
+    noto-fonts \
+    noto-fonts-emoji \
+    noto-fonts-cjk \
+    ttf-dejavu \
+    ttf-liberation \
+    ttf-hack \
+    p7zip \
+    unrar \
+    file-roller \
+    thunar-archive-plugin \
+    mpv \
+    vlc \
+    imv \
+    zathura \
+    zathura-pdf-mupdf
 
 # -----------------------------
 # ENABLE SERVICES
@@ -292,6 +352,10 @@ pacman_install \
 log "Enabling services..."
 service_enable NetworkManager
 service_start NetworkManager
+service_enable bluetoothd
+service_enable cupsd
+service_enable tlp
+service_enable docker
 
 # -----------------------------
 # WIFI SETUP
@@ -372,7 +436,15 @@ yay_install \
     volatility3 \
     frida \
     objection \
-    crackmapexec
+    crackmapexec \
+    wpscan \
+    feroxbuster \
+    arjun \
+    sublist3r \
+    trufflehog \
+    gitleaks \
+    sherlock \
+    nuclei-templates
 
 # -----------------------------
 # INSTALL GO
@@ -400,6 +472,12 @@ go_install github.com/sensepost/gowitness@latest
 go_install github.com/projectdiscovery/dnsx/cmd/dnsx@latest
 go_install github.com/projectdiscovery/httpx/cmd/httpx@latest
 go_install github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
+go_install github.com/lc/gau/v2/cmd/gau@latest
+go_install github.com/hakluke/hakrawler@latest
+go_install github.com/projectdiscovery/interactsh/cmd/interactsh-client@latest
+go_install github.com/projectdiscovery/notify/cmd/notify@latest
+go_install github.com/projectdiscovery/shuffledns/cmd/shuffledns@latest
+go_install github.com/projectdiscovery/chaos-client/cmd/chaos@latest
 
 # -----------------------------
 # EXTRA UTILITIES
@@ -419,6 +497,31 @@ pacman_install \
     net-tools \
     btop \
     python
+
+# -----------------------------
+# DEV / QoL TOOLS
+# -----------------------------
+log "Installing dev and quality-of-life tools..."
+pacman_install \
+    nodejs \
+    npm \
+    rustup \
+    zoxide \
+    lazygit \
+    starship \
+    docker \
+    docker-compose
+
+# initialize rustup with stable toolchain if not already set up
+if command -v rustup &>/dev/null && ! rustup show active-toolchain &>/dev/null; then
+    log "Setting rustup default toolchain to stable..."
+    rustup default stable || log "WARNING: rustup default stable failed"
+fi
+
+# add current user to docker group so docker can run without sudo
+if getent group docker &>/dev/null; then
+    sudo usermod -aG docker "$USER" 2>/dev/null || true
+fi
 
 # -----------------------------
 # AUR PACKAGES
