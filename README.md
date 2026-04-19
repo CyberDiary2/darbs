@@ -35,6 +35,31 @@ Run on a fresh Arch install. Reboot when it finishes.
 
 Already-installed packages and tools are detected and skipped, so re-running the script is safe.
 
+If the batch pacman or yay install fails (one missing package in the group), the script automatically retries each package individually and logs the ones that couldn't be installed instead of aborting.
+
+### Artix variant
+
+`darbs-artix.sh` is the systemd-free variant. It auto-detects whether the host runs openrc, runit, s6, or dinit and installs the matching init-specific packages (`networkmanager-$INIT`, `lightdm-$INIT`, `bluez-$INIT`, `cups-$INIT`, `tlp-$INIT`, `docker-$INIT`) and enables services through the matching tool (`rc-update`, `sv`, `s6-rc`, `dinitctl`).
+
+```bash
+chmod +x darbs-artix.sh
+./darbs-artix.sh
+```
+
+In addition to everything in the main list, `darbs-artix.sh` also installs:
+
+**Audio**: pipewire, pipewire-pulse, pipewire-alsa, pipewire-jack, wireplumber, pavucontrol, alsa-utils  
+**Bluetooth**: bluez, bluez-utils, blueman  
+**Printing**: cups, cups-pdf, system-config-printer, ghostscript  
+**Fonts**: noto-fonts, noto-fonts-emoji, noto-fonts-cjk, ttf-dejavu, ttf-liberation, ttf-hack  
+**Archive**: p7zip, unrar, file-roller, thunar-archive-plugin  
+**Media**: mpv, vlc, imv, zathura, zathura-pdf-mupdf  
+**Power / network tray**: tlp, xfce4-power-manager, network-manager-applet  
+**CPU microcode**: auto-detects intel-ucode or amd-ucode from /proc/cpuinfo  
+**Dev / QoL**: nodejs, npm, rustup (auto-runs `rustup default stable`), zoxide, lazygit, starship, docker, docker-compose (user added to docker group)  
+**Extra security**: wpscan, feroxbuster, arjun, sublist3r, trufflehog, gitleaks, sherlock, nuclei-templates  
+**Extra Go tools**: gau, hakrawler, interactsh-client, notify, shuffledns, chaos
+
 
 
 ### Core
