@@ -520,10 +520,18 @@ EOF
 # GTK THEME (Everforest)
 # -----------------------------
 log "Installing Everforest GTK theme..."
+# make sure sassc is installed first (needed to compile the theme)
+pacman_install sassc
 mkdir -p "$HOME/.themes"
 rm -rf /tmp/everforest
 git clone --depth 1 https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme.git /tmp/everforest
-/tmp/everforest/themes/install.sh -c dark -t green -d "$HOME/.themes" 2>/dev/null || true
+/tmp/everforest/themes/install.sh -c dark -t green -d "$HOME/.themes" || log "WARNING: Everforest install.sh failed"
+# verify the theme was actually created
+if [ -d "$HOME/.themes/Everforest-Green-Dark" ]; then
+    log "Everforest theme installed successfully."
+else
+    log "WARNING: Everforest-Green-Dark not found in ~/.themes"
+fi
 rm -rf /tmp/everforest
 
 # -----------------------------
@@ -583,10 +591,38 @@ sudo cp -f ~/wallpapers/0327.jpg /usr/share/backgrounds/xfce/xfce-x.svg 2>/dev/n
 # LIGHTDM GREETER THEME
 # -----------------------------
 log "Configuring LightDM greeter to match Everforest theme..."
+# copy theme to system dir so lightdm (running as root) can access it
+sudo mkdir -p /usr/share/themes
+if [ -d "$HOME/.themes/Everforest-Green-Dark" ]; then
+    sudo cp -r "$HOME/.themes/Everforest-Green-Dark" /usr/share/themes/
+fi
+
+# use dotfiles greeter config or create one
 if [ -f "$DOT_DIR/lightdm-gtk-greeter.conf" ]; then
     sudo cp "$DOT_DIR/lightdm-gtk-greeter.conf" /etc/lightdm/lightdm-gtk-greeter.conf
-    sudo mkdir -p /usr/share/themes
-    sudo cp -r "$HOME/.themes/Everforest-Green-Dark" /usr/share/themes/ 2>/dev/null || true
+else
+    sudo tee /etc/lightdm/lightdm-gtk-greeter.conf > /dev/null <<'GREETEREOF'
+[greeter]
+theme-name = Everforest-Green-Dark
+icon-theme-name = Papirus-Dark
+font-name = JetBrainsMono Nerd Font 12
+background = /usr/share/backgrounds/xfce/xfce-x.svg
+user-background = false
+position = 50%,center 50%,center
+clock-format = %A, %B %d   %H:%M
+indicators = ~host;~spacer;~clock;~spacer;~session;~power
+GREETEREOF
+fi
+
+# make sure lightdm uses the gtk greeter, not some other one
+sudo mkdir -p /etc/lightdm
+if [ -f /etc/lightdm/lightdm.conf ]; then
+    sudo sed -i 's/^#\?greeter-session=.*/greeter-session=lightdm-gtk-greeter/' /etc/lightdm/lightdm.conf
+else
+    sudo tee /etc/lightdm/lightdm.conf > /dev/null <<'LIGHTDMEOF'
+[Seat:*]
+greeter-session=lightdm-gtk-greeter
+LIGHTDMEOF
 fi
 
 # gf patterns
