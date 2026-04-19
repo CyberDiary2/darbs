@@ -127,12 +127,15 @@ elif command -v runit &>/dev/null || [ -d /run/runit ]; then
     INIT_SYS="runit"
 elif command -v s6-rc &>/dev/null || [ -d /run/s6 ]; then
     INIT_SYS="s6"
+elif command -v dinitctl &>/dev/null; then
+    INIT_SYS="dinit"
 else
     # fallback: check pid 1
     case "$(cat /proc/1/comm 2>/dev/null)" in
         openrc-init) INIT_SYS="openrc" ;;
         runit)       INIT_SYS="runit" ;;
         s6-svscan)   INIT_SYS="s6" ;;
+        dinit)       INIT_SYS="dinit" ;;
         *)           INIT_SYS="openrc" ; log "WARNING: could not detect init system, defaulting to openrc" ;;
     esac
 fi
@@ -157,6 +160,9 @@ service_enable() {
                 sudo s6-rc -u change "$svc" 2>/dev/null || true
             fi
             ;;
+        dinit)
+            sudo dinitctl enable "$svc" 2>/dev/null || true
+            ;;
     esac
 }
 
@@ -171,6 +177,9 @@ service_start() {
             ;;
         s6)
             sudo s6-rc -u change "$svc" 2>/dev/null || true
+            ;;
+        dinit)
+            sudo dinitctl start "$svc" 2>/dev/null || true
             ;;
     esac
 }
@@ -188,6 +197,9 @@ service_disable() {
             ;;
         s6)
             sudo s6-rc -d change "$svc" 2>/dev/null || true
+            ;;
+        dinit)
+            sudo dinitctl disable "$svc" 2>/dev/null || true
             ;;
     esac
 }
@@ -409,8 +421,7 @@ pacman_install \
     inetutils \
     net-tools \
     btop \
-    python \
-    python-pip
+    python
 
 # -----------------------------
 # INSTALL AUR HELPER (YAY)
@@ -499,7 +510,7 @@ else
     log "WARNING: xfce4/xfconf/xfce-perchannel-xml not found in dotfiles repo!"
 fi
 
-sed -i "s|/home/drew|$HOME|g" "$XFCONF_DIR/xfce4-desktop.xml"
+sed -i "s|/home/drew|$HOME|g" "$XFCONF_DIR/xfce4-desktop.xml" 2>/dev/null || true
 
 cat > "$HOME/.config/xfce4/helpers.rc" <<EOF
 TerminalEmulator=xfce4-terminal
@@ -512,7 +523,7 @@ log "Installing Everforest GTK theme..."
 mkdir -p "$HOME/.themes"
 rm -rf /tmp/everforest
 git clone --depth 1 https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme.git /tmp/everforest
-/tmp/everforest/themes/install.sh -c dark -t green -d "$HOME/.themes"
+/tmp/everforest/themes/install.sh -c dark -t green -d "$HOME/.themes" 2>/dev/null || true
 rm -rf /tmp/everforest
 
 # -----------------------------
