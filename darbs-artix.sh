@@ -121,11 +121,73 @@ fi
 # INITIALIZE PACMAN KEYRING
 # -----------------------------
 log "Initializing pacman keyring..."
-sudo killall gpg-agent dirmngr 2>/dev/null || true
+
+# clock check: wrong system time is the #1 cause of "signature invalid" / key
+# import failures because GPG rejects keys that look like they're from the future
+NOW_YEAR="$(date +%Y)"
+if [ "$NOW_YEAR" -lt 2024 ] || [ "$NOW_YEAR" -gt 2100 ]; then
+    echo
+    echo "ERROR: system clock looks wrong: $(date)"
+    echo "Fix with one of:"
+    echo "  sudo date -s \"\$(curl -sI https://google.com | grep -i '^date:' | cut -d' ' -f2-)\""
+    echo "  sudo ntpd -q -p pool.ntp.org"
+    echo "Then rerun this script."
+    exit 1
+fi
+
+# kill stuck gpg-agent / dirmngr from previous failed runs
+sudo killall gpg-agent dirmngr gpg 2>/dev/null || true
+sleep 1
+
+# nuke any half-broken keyring and start fresh
 sudo rm -rf /etc/pacman.d/gnupg
-sudo pacman-key --init
+
+# make sure the keyring packages themselves are present on disk; without them
+# /usr/share/pacman/keyrings/*.gpg is empty and --populate silently does nothing
+if ! pacman -Qi artix-keyring &>/dev/null; then
+    log "artix-keyring not installed, this script needs to be rerun after fixing base install"
+fi
+
+# install haveged for entropy — fresh VMs / laptops with SSD boots can stall
+# pacman-key --init on low entropy. If haveged isn't installed yet we accept
+# that and move on; the kernel's jitter entropy usually suffices.
+if ! pacman -Qi haveged &>/dev/null; then
+    sudo pacman -S --noconfirm haveged 2>/dev/null || log "haveged not installed (continuing)"
+fi
+sudo haveged -w 1024 2>/dev/null &
+HAVEGED_PID=$!
+
+if ! sudo pacman-key --init; then
+    echo "ERROR: pacman-key --init failed. Check /etc/pacman.d/gnupg perms."
+    exit 1
+fi
+
+# populate master keys - if this silently adds nothing, signatures will fail
 sudo pacman-key --populate artix
-sudo pacman -Sy --noconfirm
+if [ -d /usr/share/pacman/keyrings ] && ls /usr/share/pacman/keyrings/archlinux*.gpg &>/dev/null; then
+    sudo pacman-key --populate archlinux 2>/dev/null || true
+fi
+
+# verify that populate actually did something; if not, try refresh-keys
+if ! sudo pacman-key --list-keys 2>/dev/null | grep -q '.'; then
+    log "WARNING: no keys in keyring after populate, trying --refresh-keys (this can take minutes)..."
+    sudo pacman-key --refresh-keys 2>/dev/null || log "WARNING: --refresh-keys failed, check network / keyserver"
+fi
+
+# stop the entropy helper now that init is done
+kill "$HAVEGED_PID" 2>/dev/null || true
+
+# sync repo DBs - fail loudly so user sees the actual error instead of
+# having every subsequent package "skip" with a WARNING line
+if ! sudo pacman -Syy --noconfirm; then
+    echo
+    echo "ERROR: pacman -Syy failed. Common causes:"
+    echo "  - Keyring still broken: sudo pacman -S archlinux-keyring artix-keyring && sudo pacman-key --populate"
+    echo "  - System clock wrong:   date   (then: sudo ntpd -q -p pool.ntp.org)"
+    echo "  - No internet:          ping archlinux.org"
+    echo "  - Dead mirror:          edit /etc/pacman.d/mirrorlist and move a closer one to top"
+    exit 1
+fi
 
 # -----------------------------
 # DETECT INIT SYSTEM
