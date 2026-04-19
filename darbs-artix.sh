@@ -309,26 +309,22 @@ done
 service_enable lightdm
 
 # -----------------------------
-# ADD BLACKARCH REPO
+# INSTALL AUR HELPER (YAY) - needed for security tools
 # -----------------------------
-log "Adding BlackArch repository..."
-if ! grep -qE '^\[blackarch\]' /etc/pacman.conf 2>/dev/null; then
-    curl -o /tmp/strap.sh https://blackarch.org/strap.sh
-    chmod +x /tmp/strap.sh
-    sudo /tmp/strap.sh
-    rm -f /tmp/strap.sh
-    sudo pacman -Sy --noconfirm
-else
-    log "BlackArch repo already present, skipping."
+log "Installing yay..."
+if ! command -v yay &> /dev/null; then
+    rm -rf /tmp/yay
+    git clone https://aur.archlinux.org/yay.git /tmp/yay
+    (cd /tmp/yay && makepkg -si --noconfirm)
+    rm -rf /tmp/yay
 fi
 
 # -----------------------------
-# BUG BOUNTY + SECURITY TOOLS
+# BUG BOUNTY + SECURITY TOOLS (via yay - handles both repos and AUR)
 # -----------------------------
 log "Installing bug bounty and security tools..."
-pacman_install \
+yay_install \
     nmap \
-    burpsuite \
     sqlmap \
     nikto \
     gobuster \
@@ -339,7 +335,6 @@ pacman_install \
     wfuzz \
     tcpdump \
     wireshark-qt \
-    metasploit \
     hydra \
     masscan \
     openbsd-netcat \
@@ -351,11 +346,8 @@ pacman_install \
     theharvester \
     recon-ng \
     responder \
-    crackmapexec \
     impacket \
     seclists \
-    frida \
-    objection \
     commix \
     enum4linux-ng \
     massdns \
@@ -363,19 +355,24 @@ pacman_install \
     ettercap \
     kismet \
     binwalk \
-    autopsy \
-    volatility3 \
-    bloodhound \
-    bettercap \
     macchanger \
-    maltego \
     exploitdb \
     dnsenum \
     cewl \
     wifite \
     reaver \
     foremost \
-    socat
+    socat \
+    burpsuite \
+    metasploit \
+    maltego \
+    bloodhound \
+    bettercap \
+    autopsy \
+    volatility3 \
+    frida \
+    objection \
+    crackmapexec
 
 # -----------------------------
 # INSTALL GO
@@ -424,35 +421,24 @@ pacman_install \
     python
 
 # -----------------------------
-# INSTALL AUR HELPER (YAY)
-# -----------------------------
-log "Installing yay..."
-if ! command -v yay &> /dev/null; then
-    rm -rf /tmp/yay
-    git clone https://aur.archlinux.org/yay.git /tmp/yay
-    (cd /tmp/yay && makepkg -si --noconfirm)
-    rm -rf /tmp/yay
-fi
-
-# -----------------------------
 # AUR PACKAGES
 # -----------------------------
 log "Installing AUR packages..."
 yay_install \
- vscodium-bin \
- obsidian \
- nuclei \
- medusa \
- patator \
- subjack \
- eyewitness \
- scout-suite \
- planify \
- peek \
- ttf-jetbrains-mono-nerd \
- ghidra \
- drawio-desktop-bin \
- beef-xss
+    vscodium-bin \
+    obsidian \
+    nuclei \
+    medusa \
+    patator \
+    subjack \
+    eyewitness \
+    scout-suite \
+    planify \
+    peek \
+    ttf-jetbrains-mono-nerd \
+    ghidra \
+    drawio-desktop-bin \
+    beef-xss
 
 # -----------------------------
 # CLONE DOTFILES
