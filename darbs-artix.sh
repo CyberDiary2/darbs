@@ -20,7 +20,7 @@ echo -e "\e[38;5;22m
 \e[0m"
 echo "=== DARBS (Artix Linux) ==="
 
-set -e
+# not using set -e so one failed package doesn't kill the whole script
 
 LOGFILE="$HOME/darbs.log"
 exec > >(tee -a "$LOGFILE") 2>&1
@@ -301,10 +301,10 @@ service_enable lightdm
 # -----------------------------
 log "Adding BlackArch repository..."
 if ! grep -qE '^\[blackarch\]' /etc/pacman.conf 2>/dev/null; then
-    curl -O https://blackarch.org/strap.sh
-    chmod +x strap.sh
-    sudo ./strap.sh
-    rm strap.sh
+    curl -o /tmp/strap.sh https://blackarch.org/strap.sh
+    chmod +x /tmp/strap.sh
+    sudo /tmp/strap.sh
+    rm -f /tmp/strap.sh
     sudo pacman -Sy --noconfirm
 else
     log "BlackArch repo already present, skipping."
@@ -417,10 +417,9 @@ pacman_install \
 # -----------------------------
 log "Installing yay..."
 if ! command -v yay &> /dev/null; then
+    rm -rf /tmp/yay
     git clone https://aur.archlinux.org/yay.git /tmp/yay
-    cd /tmp/yay
-    makepkg -si --noconfirm
-    cd ~
+    (cd /tmp/yay && makepkg -si --noconfirm)
     rm -rf /tmp/yay
 fi
 
@@ -558,13 +557,14 @@ fi
 
 WALL="$HOME/wallpapers/0327.jpg"
 
-xfconf-query -c xfce4-desktop -l | grep last-image | while read -r path; do
-  xfconf-query -c xfce4-desktop -p "$path" -s "$WALL"
-done
-
-xfconf-query -c xfce4-desktop -l | grep image-style | while read -r path; do
-  xfconf-query -c xfce4-desktop -p "$path" -s 3
-done
+if command -v xfconf-query &>/dev/null && [ -n "$DISPLAY" ]; then
+    xfconf-query -c xfce4-desktop -l 2>/dev/null | grep last-image | while read -r path; do
+        xfconf-query -c xfce4-desktop -p "$path" -s "$WALL" 2>/dev/null || true
+    done
+    xfconf-query -c xfce4-desktop -l 2>/dev/null | grep image-style | while read -r path; do
+        xfconf-query -c xfce4-desktop -p "$path" -s 3 2>/dev/null || true
+    done
+fi
 
 sudo cp -f ~/wallpapers/0327.jpg /usr/share/backgrounds/xfce/xfce-x.svg 2>/dev/null || true
 
@@ -586,7 +586,7 @@ if [ ! "$(ls -A "$HOME/.gf" 2>/dev/null)" ]; then
         rm -rf /tmp/gf-patterns
 fi
 
-echo 'export PATH=$HOME/go/bin:$HOME/.local/bin:$PATH' >> ~/.bashrc
+# PATH already added above, skip duplicate
 
 # -----------------------------
 # FINISH
