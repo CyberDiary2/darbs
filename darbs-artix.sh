@@ -524,6 +524,19 @@ if getent group docker &>/dev/null; then
 fi
 
 # -----------------------------
+# PRODUCTIVITY EXTRAS
+# -----------------------------
+log "Installing productivity extras..."
+pacman_install \
+    anki \
+    xournalpp \
+    gimp \
+    atuin \
+    syncthing \
+    pandoc \
+    gajim
+
+# -----------------------------
 # AUR PACKAGES
 # -----------------------------
 log "Installing AUR packages..."
@@ -541,7 +554,8 @@ yay_install \
     ttf-jetbrains-mono-nerd \
     ghidra \
     drawio-desktop-bin \
-    beef-xss
+    beef-xss \
+    espanso
 
 # -----------------------------
 # CLONE DOTFILES

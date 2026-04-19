@@ -58,7 +58,8 @@ In addition to everything in the main list, `darbs-artix.sh` also installs:
 **CPU microcode**: auto-detects intel-ucode or amd-ucode from /proc/cpuinfo  
 **Dev / QoL**: nodejs, npm, rustup (auto-runs `rustup default stable`), zoxide, lazygit, starship, docker, docker-compose (user added to docker group)  
 **Extra security**: wpscan, feroxbuster, arjun, sublist3r, trufflehog, gitleaks, sherlock, nuclei-templates  
-**Extra Go tools**: gau, hakrawler, interactsh-client, notify, shuffledns, chaos
+**Extra Go tools**: gau, hakrawler, interactsh-client, notify, shuffledns, chaos  
+**Productivity extras**: anki, xournalpp, gimp, atuin, syncthing, pandoc, gajim, espanso (AUR)
 
 
 
