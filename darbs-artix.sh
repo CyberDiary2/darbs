@@ -229,7 +229,7 @@ pacman_install \
     "lightdm-$INIT_SYS"
 
 pacman_install \
-    xorg-xlibre \
+    xlibre-server \
     xfce4 xfce4-goodies \
     xfce4-terminal \
     xfce4-whiskermenu-plugin \
