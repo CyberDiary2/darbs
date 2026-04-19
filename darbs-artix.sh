@@ -228,11 +228,10 @@ pacman_install \
     "networkmanager-$INIT_SYS" \
     "lightdm-$INIT_SYS"
 
-# remove vesa if it conflicts with xorg
-sudo pacman -Rdd xf86-video-vesa --noconfirm 2>/dev/null || true
+# install xorg, skip vesa to avoid xlibre conflict
+sudo pacman -S --noconfirm --ignore xf86-video-vesa xorg 2>/dev/null || true
 
 pacman_install \
-    xorg \
     xfce4 xfce4-goodies \
     xfce4-terminal \
     xfce4-whiskermenu-plugin \
