@@ -174,10 +174,8 @@ if ! sudo pacman-key --list-keys 2>/dev/null | grep -q '.'; then
     sudo pacman-key --refresh-keys 2>/dev/null || log "WARNING: --refresh-keys failed, check network / keyserver"
 fi
 
-# stop the entropy helper now that init is done
-kill "$HAVEGED_PID" 2>/dev/null || true
-
-# sync repo DBs - fail loudly so user sees the actual error instead of
+# sync repo DBs - keep haveged running through the sync for entropy
+# fail loudly so user sees the actual error instead of
 # having every subsequent package "skip" with a WARNING line
 if ! sudo pacman -Syy --noconfirm; then
     echo
@@ -186,8 +184,12 @@ if ! sudo pacman -Syy --noconfirm; then
     echo "  - System clock wrong:   date   (then: sudo ntpd -q -p pool.ntp.org)"
     echo "  - No internet:          ping archlinux.org"
     echo "  - Dead mirror:          edit /etc/pacman.d/mirrorlist and move a closer one to top"
+    kill "$HAVEGED_PID" 2>/dev/null || true
     exit 1
 fi
+
+# keyring and first sync succeeded — stop the entropy helper
+kill "$HAVEGED_PID" 2>/dev/null || true
 
 # -----------------------------
 # DETECT INIT SYSTEM
@@ -213,6 +215,40 @@ else
 fi
 
 echo -e "${BLUE}==> Detected init system: $INIT_SYS${RESET}"
+
+# -----------------------------
+# EARLY WIFI SETUP
+# -----------------------------
+log "Checking network connectivity..."
+
+# bring up NetworkManager early if already installed
+if command -v nmcli &>/dev/null; then
+    service_enable NetworkManager
+    service_start NetworkManager
+    sleep 3
+fi
+
+if ! ping -c 1 -W 5 archlinux.org &>/dev/null; then
+    log "No internet detected."
+    if command -v nmtui &>/dev/null; then
+        log "Launching WiFi setup — connect then press Quit..."
+        nmtui connect
+        sleep 3
+    else
+        log "nmtui not found. Connect manually with iwctl or wpa_supplicant then rerun."
+        echo "  iwctl"
+        echo "    station wlan0 scan"
+        echo "    station wlan0 connect \"YourSSID\""
+        echo "    exit"
+    fi
+
+    if ! ping -c 1 -W 5 archlinux.org &>/dev/null; then
+        echo ""
+        echo "ERROR: still no internet. Fix WiFi and rerun the script."
+        exit 1
+    fi
+fi
+log "Internet connection confirmed."
 
 # service management helpers
 service_enable() {
@@ -418,15 +454,6 @@ service_enable bluetoothd
 service_enable cupsd
 service_enable tlp
 service_enable docker
-
-# -----------------------------
-# WIFI SETUP
-# -----------------------------
-log "Checking for WiFi connectivity..."
-if ! ping -c 1 -W 3 archlinux.org &>/dev/null; then
-    log "No internet detected. Launching WiFi setup..."
-    nmtui connect
-fi
 
 # disable conflicting display managers
 for dm in sddm gdm lxdm xdm; do
