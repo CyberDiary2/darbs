@@ -673,6 +673,170 @@ pip_install jwt_tool
 pip_install s3scanner
 
 # -----------------------------
+# PLYMOUTH DARBS SPLASH THEME
+# (boot splash, shutdown splash, LUKS encryption prompt)
+# -----------------------------
+if [ -f /usr/share/plymouth/themes/darbs/darbs.script ]; then
+    log "darbs Plymouth theme already installed, skipping."
+else
+log "Installing Plymouth with darbs branding..."
+
+pacman_install imagemagick
+yay_install plymouth
+
+sudo mkdir -p /usr/share/plymouth/themes/darbs
+
+# generate ASCII art logo PNG (fallback to plain text if font missing)
+sudo convert \
+    -background "#0d1210" \
+    -fill "#5a9e44" \
+    -font "DejaVu-Sans-Mono-Bold" \
+    -pointsize 22 \
+    label:"$(printf '██████╗  █████╗ ██████╗ ██████╗ ███████╗\n██╔══██╗██╔══██╗██╔══██╗██╔══██╗██╔════╝\n██║  ██║███████║██████╔╝██████╔╝███████╗\n██║  ██║██╔══██║██╔══██╗██╔══██╗╚════██║\n██████╔╝██║  ██║██║  ██║██████╔╝███████║\n╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝')" \
+    /usr/share/plymouth/themes/darbs/logo.png 2>/dev/null || \
+sudo convert -size 500x80 xc:"#0d1210" \
+    -fill "#5a9e44" \
+    -font "DejaVu-Sans-Mono-Bold" \
+    -pointsize 60 \
+    -gravity Center \
+    -annotate 0 "DARBS" \
+    /usr/share/plymouth/themes/darbs/logo.png 2>/dev/null || \
+    log "WARNING: ImageMagick logo generation failed"
+
+# progress bar images
+sudo convert -size 400x8 xc:"#1a2a16" \
+    /usr/share/plymouth/themes/darbs/bar-bg.png 2>/dev/null || true
+sudo convert -size 2x8 xc:"#5a9e44" \
+    /usr/share/plymouth/themes/darbs/bar-fill.png 2>/dev/null || true
+
+# theme descriptor
+sudo tee /usr/share/plymouth/themes/darbs/darbs.plymouth > /dev/null <<'EOF'
+[Plymouth Theme]
+Name=darbs
+Description=DARBS - Everforest dark splash with LUKS prompt
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/darbs
+ScriptFile=/usr/share/plymouth/themes/darbs/darbs.script
+EOF
+
+# Plymouth rendering script
+sudo tee /usr/share/plymouth/themes/darbs/darbs.script > /dev/null <<'PLYSCRIPT'
+# darbs Plymouth theme — colors match Everforest dark
+# bg=#0d1210  green=#5a9e44  text=#d3c6aa  muted=#83a598
+
+Window.SetBackgroundTopColor(0.051, 0.071, 0.063);
+Window.SetBackgroundBottomColor(0.031, 0.047, 0.039);
+
+# Logo
+logo_img = Image("logo.png");
+if (logo_img) {
+    logo_sprite = Sprite(logo_img);
+    logo_sprite.SetX(Window.GetWidth() / 2 - logo_img.GetWidth() / 2);
+    logo_sprite.SetY(Window.GetHeight() / 2 - logo_img.GetHeight() / 2 - 70);
+    logo_sprite.SetZ(1);
+}
+
+# Progress bar track
+bar_w = 400; bar_h = 8;
+bar_x = Window.GetWidth() / 2 - bar_w / 2;
+bar_y = Window.GetHeight() / 2 + 70;
+
+bar_bg_img = Image("bar-bg.png");
+if (bar_bg_img) {
+    bar_bg_sprite = Sprite(Image.Scale(bar_bg_img, bar_w, bar_h));
+    bar_bg_sprite.SetX(bar_x);
+    bar_bg_sprite.SetY(bar_y);
+    bar_bg_sprite.SetZ(2);
+}
+
+progress = 0;
+bar_fill_base = Image("bar-fill.png");
+bar_fill_sprite = Sprite();
+bar_fill_sprite.SetX(bar_x);
+bar_fill_sprite.SetY(bar_y);
+bar_fill_sprite.SetZ(3);
+
+fun refresh_callback() {
+    progress = progress + 0.003;
+    if (progress > 1) { progress = 1; }
+    fill_w = Math.Int(bar_w * progress);
+    if (fill_w < 2) { fill_w = 2; }
+    if (bar_fill_base) {
+        bar_fill_sprite.SetImage(Image.Scale(bar_fill_base, fill_w, bar_h));
+    }
+}
+Plymouth.SetRefreshFunction(refresh_callback);
+
+# Boot status line
+status_sprite = Sprite();
+status_sprite.SetZ(4);
+
+fun status_callback(text) {
+    status_img = Image.Text(text, 0.514, 0.584, 0.455);
+    status_sprite.SetImage(status_img);
+    status_sprite.SetX(Window.GetWidth() / 2 - status_img.GetWidth() / 2);
+    status_sprite.SetY(bar_y + 20);
+}
+Plymouth.SetUpdateStatusFunction(status_callback);
+
+# LUKS encryption / password prompt
+prompt_sprite = Sprite();
+prompt_sprite.SetZ(5);
+bullets_sprite = Sprite();
+bullets_sprite.SetZ(5);
+
+fun display_password_callback(prompt, bullets) {
+    prompt_img = Image.Text(prompt, 0.353, 0.620, 0.267);
+    prompt_sprite.SetImage(prompt_img);
+    prompt_sprite.SetX(Window.GetWidth() / 2 - prompt_img.GetWidth() / 2);
+    prompt_sprite.SetY(Window.GetHeight() / 2 + 20);
+    prompt_sprite.SetOpacity(1);
+
+    stars = "";
+    for (i = 0; i < bullets; i++) { stars = stars + "*"; }
+    bullets_img = Image.Text("[ " + stars + " ]", 0.827, 0.776, 0.667);
+    bullets_sprite.SetImage(bullets_img);
+    bullets_sprite.SetX(Window.GetWidth() / 2 - bullets_img.GetWidth() / 2);
+    bullets_sprite.SetY(Window.GetHeight() / 2 + 48);
+    bullets_sprite.SetOpacity(1);
+}
+Plymouth.SetDisplayPasswordFunction(display_password_callback);
+
+fun display_normal_callback() {
+    prompt_sprite.SetOpacity(0);
+    bullets_sprite.SetOpacity(0);
+}
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
+PLYSCRIPT
+
+# wire up mkinitcpio: swap 'encrypt' for 'plymouth plymouth-encrypt' so
+# the LUKS prompt appears in the splash; if no encrypt hook, insert before filesystems
+if ! grep -q '\bplymouth\b' /etc/mkinitcpio.conf 2>/dev/null; then
+    if grep -q '\bencrypt\b' /etc/mkinitcpio.conf 2>/dev/null; then
+        sudo sed -i 's/\bencrypt\b/plymouth plymouth-encrypt/' /etc/mkinitcpio.conf
+        log "Replaced 'encrypt' hook with 'plymouth plymouth-encrypt' in mkinitcpio.conf"
+    else
+        sudo sed -i 's/\bfilesystems\b/plymouth filesystems/' /etc/mkinitcpio.conf
+        log "Added 'plymouth' hook before 'filesystems' in mkinitcpio.conf"
+    fi
+fi
+
+# set as default theme and rebuild initramfs
+sudo plymouth-set-default-theme darbs 2>/dev/null || true
+sudo mkinitcpio -P 2>/dev/null || log "WARNING: mkinitcpio rebuild failed — run manually: sudo mkinitcpio -P"
+
+# add 'quiet splash' to GRUB kernel cmdline if not already there
+if [ -f /etc/default/grub ] && ! grep 'GRUB_CMDLINE_LINUX_DEFAULT' /etc/default/grub | grep -q 'splash'; then
+    sudo sed -i 's/\(GRUB_CMDLINE_LINUX_DEFAULT="[^"]*\)"/\1 quiet splash"/' /etc/default/grub
+    sudo grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || log "WARNING: grub-mkconfig failed — run manually: sudo grub-mkconfig -o /boot/grub/grub.cfg"
+fi
+
+log "darbs Plymouth theme installed — reboot to see startup, shutdown, and LUKS encryption splash."
+fi  # end plymouth skip block
+
+# -----------------------------
 # CLONE DOTFILES
 # -----------------------------
 log "Cloning dotfiles..."
