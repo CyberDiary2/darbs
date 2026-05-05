@@ -828,6 +828,132 @@ fi
 # PATH already added above, skip duplicate
 
 # -----------------------------
+# WHISKER MENU - SECURITY SHORTCUTS
+# -----------------------------
+log "Creating security tool shortcuts for Whisker Menu..."
+mkdir -p "$HOME/.local/share/applications"
+
+# Helper: creates a .desktop entry that opens xfce4-terminal running the tool.
+# Terminal=true lets xfce4-terminal (set as default) launch automatically.
+# Usage: sec_desktop "Menu Name" "exec string" "Tooltip" "SubCategory"
+sec_desktop() {
+    local name="$1" exec="$2" desc="$3" sub="$4"
+    local slug
+    slug="$(echo "$name" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')"
+    cat > "$HOME/.local/share/applications/sec-${slug}.desktop" <<EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=$name
+Comment=$desc
+Exec=sh -c '$exec; \$SHELL'
+Icon=utilities-terminal
+Terminal=true
+Categories=Security;${sub};
+Keywords=${slug};security;pentest;hacking;
+EOF
+}
+
+# ── Reconnaissance ──────────────────────────────────────────────────────────
+sec_desktop "Amass"          "amass -h"                         "Subdomain enumeration"             "Reconnaissance"
+sec_desktop "Subfinder"      "subfinder -h"                     "Passive subdomain discovery"        "Reconnaissance"
+sec_desktop "Assetfinder"    "assetfinder -h"                   "Find domains and subdomains"        "Reconnaissance"
+sec_desktop "TheHarvester"   "theHarvester -h"                  "Email, subdomain, IP harvester"     "Reconnaissance"
+sec_desktop "Recon-ng"       "recon-ng"                         "Web reconnaissance framework"       "Reconnaissance"
+sec_desktop "Sherlock"       "sherlock -h"                      "Username hunt across social media"  "Reconnaissance"
+sec_desktop "Sublist3r"      "sublist3r -h"                     "Sublist3r subdomain scanner"        "Reconnaissance"
+sec_desktop "Shodan CLI"     "shodan -h"                        "Shodan command-line client"         "Reconnaissance"
+sec_desktop "DNSEnum"        "dnsenum -h"                       "DNS enumeration"                    "Reconnaissance"
+sec_desktop "MassDNS"        "massdns -h"                       "High-performance DNS resolver"      "Reconnaissance"
+sec_desktop "DNSX"           "dnsx -h"                          "Fast DNS toolkit"                   "Reconnaissance"
+sec_desktop "Waybackurls"    "waybackurls -h"                   "Fetch URLs from Wayback Machine"    "Reconnaissance"
+sec_desktop "GAU"            "gau -h"                           "Get all URLs (AlienVault + Wayback)" "Reconnaissance"
+sec_desktop "Httprobe"       "httprobe -h"                      "Probe for live HTTP/S hosts"        "Reconnaissance"
+sec_desktop "Gowitness"      "gowitness -h"                     "Web screenshot utility"             "Reconnaissance"
+sec_desktop "Chaos"          "chaos -h"                         "ProjectDiscovery chaos client"      "Reconnaissance"
+sec_desktop "Shuffledns"     "shuffledns -h"                    "Mass DNS resolver using massdns"    "Reconnaissance"
+
+# ── Scanning ─────────────────────────────────────────────────────────────────
+sec_desktop "Nmap"           "nmap --help 2>&1 | head -60"      "Network port scanner"               "Scanner"
+sec_desktop "Masscan"        "masscan --help 2>&1 | head -40"   "Mass IP port scanner"               "Scanner"
+sec_desktop "Naabu"          "naabu -h"                         "Fast port scanner"                  "Scanner"
+sec_desktop "Smap"           "smap -h"                          "Shodan-powered port scanner"        "Scanner"
+sec_desktop "Whatweb"        "whatweb -h"                       "Web technology fingerprinter"       "Scanner"
+sec_desktop "Nuclei"         "nuclei -h"                        "Template-based vulnerability scanner" "Scanner"
+sec_desktop "Nikto"          "nikto -h"                         "Web server vulnerability scanner"   "Scanner"
+
+# ── Web Application ──────────────────────────────────────────────────────────
+sec_desktop "Gobuster"       "gobuster -h"                      "Directory/DNS brute-forcer"         "WebApp"
+sec_desktop "FFuf"           "ffuf -h"                          "Web fuzzer"                         "WebApp"
+sec_desktop "Feroxbuster"    "feroxbuster -h"                   "Recursive content discovery"        "WebApp"
+sec_desktop "Wfuzz"          "wfuzz -h"                         "Web application fuzzer"             "WebApp"
+sec_desktop "Dirsearch"      "dirsearch -h"                     "Web path scanner"                   "WebApp"
+sec_desktop "SQLMap"         "sqlmap -h"                        "SQL injection tool"                 "WebApp"
+sec_desktop "WPScan"         "wpscan -h"                        "WordPress vulnerability scanner"    "WebApp"
+sec_desktop "Commix"         "commix -h"                        "Command injection exploiter"        "WebApp"
+sec_desktop "Arjun"          "arjun -h"                         "HTTP parameter discovery"           "WebApp"
+sec_desktop "Dalfox"         "dalfox -h"                        "XSS scanning and parameter analysis" "WebApp"
+sec_desktop "Katana"         "katana -h"                        "Next-gen web crawler"               "WebApp"
+sec_desktop "Hakrawler"      "hakrawler -h"                     "Simple web crawler"                 "WebApp"
+sec_desktop "HTTPX"          "httpx -h"                         "HTTP toolkit"                       "WebApp"
+sec_desktop "GF"             "gf -h"                            "Grep with predefined patterns"      "WebApp"
+sec_desktop "Mitmproxy"      "mitmproxy -h"                     "Interactive HTTPS proxy"            "WebApp"
+sec_desktop "Mitmweb"        "mitmweb"                          "Mitmproxy web interface"            "WebApp"
+
+# ── Password ─────────────────────────────────────────────────────────────────
+sec_desktop "Hydra"          "hydra -h 2>&1 | head -40"         "Network login brute-forcer"         "Password"
+sec_desktop "John"           "john --help 2>&1 | head -40"      "John the Ripper password cracker"   "Password"
+sec_desktop "Hashcat"        "hashcat -h 2>&1 | head -40"       "GPU password cracker"               "Password"
+sec_desktop "Medusa"         "medusa -h 2>&1 | head -40"        "Parallel login brute-forcer"        "Password"
+sec_desktop "Patator"        "patator -h"                       "Multi-purpose brute-forcer"         "Password"
+sec_desktop "CeWL"           "cewl -h"                          "Custom wordlist generator"          "Password"
+
+# ── Wireless ─────────────────────────────────────────────────────────────────
+sec_desktop "Aircrack-ng"    "aircrack-ng --help"               "WiFi security auditing suite"       "Wireless"
+sec_desktop "Airodump-ng"    "airodump-ng --help"               "WiFi packet capture"                "Wireless"
+sec_desktop "Aireplay-ng"    "aireplay-ng --help"               "WiFi injection and replay"          "Wireless"
+sec_desktop "Wifite"         "wifite -h"                        "Automated wireless auditor"         "Wireless"
+sec_desktop "Reaver"         "reaver -h"                        "WPS brute-force attack"             "Wireless"
+sec_desktop "Kismet"         "kismet --help"                    "Wireless network detector/sniffer"  "Wireless"
+sec_desktop "Bettercap"      "bettercap -h"                     "Network attacks and monitoring"     "Wireless"
+sec_desktop "Macchanger"     "macchanger -h"                    "MAC address changer"                "Wireless"
+
+# ── Exploitation ─────────────────────────────────────────────────────────────
+sec_desktop "Metasploit"     "msfconsole"                       "Penetration testing framework"      "Exploitation"
+sec_desktop "CrackMapExec"   "crackmapexec -h"                  "SMB/AD exploitation"                "Exploitation"
+sec_desktop "Impacket"       "echo 'Impacket tools: psexec.py secretsdump.py wmiexec.py smbclient.py'; ls /usr/lib/python3*/dist-packages/impacket/examples/*.py 2>/dev/null | xargs -I{} basename {} .py | sort" \
+                                                                 "Impacket Windows protocol tools"    "Exploitation"
+sec_desktop "Responder"      "responder -h"                     "LLMNR/NBT-NS poisoner"              "Exploitation"
+sec_desktop "Enum4linux-ng"  "enum4linux-ng -h"                 "SMB/NetBIOS enumeration"            "Exploitation"
+sec_desktop "Bloodhound"     "bloodhound-python -h"             "AD attack path mapper (collector)"  "Exploitation"
+sec_desktop "Searchsploit"   "searchsploit -h"                  "Exploit-DB offline search"          "Exploitation"
+sec_desktop "Interactsh"     "interactsh-client -h"             "OOB interaction server client"      "Exploitation"
+
+# ── Forensics ────────────────────────────────────────────────────────────────
+sec_desktop "Binwalk"        "binwalk -h"                       "Firmware analysis and extraction"   "Forensics"
+sec_desktop "Foremost"       "foremost -h"                      "File recovery by header/footer"     "Forensics"
+sec_desktop "Volatility3"    "vol -h"                           "Memory forensics framework"         "Forensics"
+sec_desktop "Strings"        "strings --help"                   "Extract printable strings"          "Forensics"
+
+# ── MITM / Capture ───────────────────────────────────────────────────────────
+sec_desktop "Ettercap"       "ettercap -h"                      "MITM attack suite"                  "MITM"
+sec_desktop "TCPDump"        "tcpdump -h 2>&1 | head -40"       "Packet capture"                     "MITM"
+sec_desktop "Socat"          "socat -h 2>&1 | head -40"         "Multipurpose relay"                 "MITM"
+
+# ── Secrets & OSINT ──────────────────────────────────────────────────────────
+sec_desktop "TruffleHog"     "trufflehog -h"                    "Credential scanner in git repos"    "Secrets"
+sec_desktop "Gitleaks"       "gitleaks -h"                      "Detect secrets in git history"      "Secrets"
+sec_desktop "Subjack"        "subjack -h"                       "Subdomain takeover detection"       "Secrets"
+
+# ── Update desktop database so Whisker picks up new entries ──────────────────
+if command -v update-desktop-database &>/dev/null; then
+    update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
+fi
+
+log "Security shortcuts created in ~/.local/share/applications"
+log "They will appear under 'Security' in Whisker Menu."
+
+# -----------------------------
 # FINISH
 # -----------------------------
 log "DARBS Artix installation complete!"
