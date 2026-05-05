@@ -120,76 +120,70 @@ fi
 # -----------------------------
 # INITIALIZE PACMAN KEYRING
 # -----------------------------
-log "Initializing pacman keyring..."
+log "Checking pacman keyring..."
 
-# clock check: wrong system time is the #1 cause of "signature invalid" / key
-# import failures because GPG rejects keys that look like they're from the future
+# clock check
 NOW_YEAR="$(date +%Y)"
 if [ "$NOW_YEAR" -lt 2024 ] || [ "$NOW_YEAR" -gt 2100 ]; then
-    echo
     echo "ERROR: system clock looks wrong: $(date)"
-    echo "Fix with one of:"
-    echo "  sudo date -s \"\$(curl -sI https://google.com | grep -i '^date:' | cut -d' ' -f2-)\""
-    echo "  sudo ntpd -q -p pool.ntp.org"
-    echo "Then rerun this script."
+    echo "Fix with: sudo date -s \"\$(curl -sI https://google.com | grep -i '^date:' | cut -d' ' -f2-)\""
     exit 1
 fi
 
-# kill stuck gpg-agent / dirmngr from previous failed runs
-sudo killall gpg-agent dirmngr gpg 2>/dev/null || true
-sleep 1
+# test if the keyring is already healthy: list-keys returns output and a test
+# install succeeds without signature errors
+_keyring_healthy() {
+    sudo pacman-key --list-keys 2>/dev/null | grep -q '.' || return 1
+    sudo pacman -Si artix-keyring &>/dev/null || return 1
+    return 0
+}
 
-# nuke any half-broken keyring and start fresh
-sudo rm -rf /etc/pacman.d/gnupg
+if _keyring_healthy; then
+    log "Keyring already initialized, skipping reinit."
+    if ! sudo pacman -Syy --noconfirm; then
+        echo "ERROR: pacman -Syy failed. Check mirror / network."
+        exit 1
+    fi
+else
+    log "Keyring missing or broken — reinitializing..."
 
-# make sure the keyring packages themselves are present on disk; without them
-# /usr/share/pacman/keyrings/*.gpg is empty and --populate silently does nothing
-if ! pacman -Qi artix-keyring &>/dev/null; then
-    log "artix-keyring not installed, this script needs to be rerun after fixing base install"
-fi
+    sudo killall gpg-agent dirmngr gpg 2>/dev/null || true
+    sleep 1
+    sudo rm -rf /etc/pacman.d/gnupg
 
-# install haveged for entropy — fresh VMs / laptops with SSD boots can stall
-# pacman-key --init on low entropy. If haveged isn't installed yet we accept
-# that and move on; the kernel's jitter entropy usually suffices.
-if ! pacman -Qi haveged &>/dev/null; then
-    sudo pacman -S --noconfirm haveged 2>/dev/null || log "haveged not installed (continuing)"
-fi
-sudo haveged -w 1024 2>/dev/null &
-HAVEGED_PID=$!
+    if ! pacman -Qi artix-keyring &>/dev/null; then
+        log "artix-keyring not installed — fix base install and rerun"
+    fi
 
-if ! sudo pacman-key --init; then
-    echo "ERROR: pacman-key --init failed. Check /etc/pacman.d/gnupg perms."
-    exit 1
-fi
+    if ! pacman -Qi haveged &>/dev/null; then
+        sudo pacman -S --noconfirm haveged 2>/dev/null || log "haveged not installed (continuing)"
+    fi
+    sudo haveged -w 1024 2>/dev/null &
+    HAVEGED_PID=$!
 
-# populate master keys - if this silently adds nothing, signatures will fail
-sudo pacman-key --populate artix
-if [ -d /usr/share/pacman/keyrings ] && ls /usr/share/pacman/keyrings/archlinux*.gpg &>/dev/null; then
-    sudo pacman-key --populate archlinux 2>/dev/null || true
-fi
+    if ! sudo pacman-key --init; then
+        echo "ERROR: pacman-key --init failed."
+        exit 1
+    fi
 
-# verify that populate actually did something; if not, try refresh-keys
-if ! sudo pacman-key --list-keys 2>/dev/null | grep -q '.'; then
-    log "WARNING: no keys in keyring after populate, trying --refresh-keys (this can take minutes)..."
-    sudo pacman-key --refresh-keys 2>/dev/null || log "WARNING: --refresh-keys failed, check network / keyserver"
-fi
+    sudo pacman-key --populate artix
+    if ls /usr/share/pacman/keyrings/archlinux*.gpg &>/dev/null; then
+        sudo pacman-key --populate archlinux 2>/dev/null || true
+    fi
 
-# sync repo DBs - keep haveged running through the sync for entropy
-# fail loudly so user sees the actual error instead of
-# having every subsequent package "skip" with a WARNING line
-if ! sudo pacman -Syy --noconfirm; then
-    echo
-    echo "ERROR: pacman -Syy failed. Common causes:"
-    echo "  - Keyring still broken: sudo pacman -S archlinux-keyring artix-keyring && sudo pacman-key --populate"
-    echo "  - System clock wrong:   date   (then: sudo ntpd -q -p pool.ntp.org)"
-    echo "  - No internet:          ping archlinux.org"
-    echo "  - Dead mirror:          edit /etc/pacman.d/mirrorlist and move a closer one to top"
+    if ! sudo pacman-key --list-keys 2>/dev/null | grep -q '.'; then
+        log "WARNING: no keys after populate, trying --refresh-keys..."
+        sudo pacman-key --refresh-keys 2>/dev/null || log "WARNING: --refresh-keys failed"
+    fi
+
+    if ! sudo pacman -Syy --noconfirm; then
+        echo "ERROR: pacman -Syy failed."
+        kill "$HAVEGED_PID" 2>/dev/null || true
+        exit 1
+    fi
+
     kill "$HAVEGED_PID" 2>/dev/null || true
-    exit 1
 fi
-
-# keyring and first sync succeeded — stop the entropy helper
-kill "$HAVEGED_PID" 2>/dev/null || true
 
 # -----------------------------
 # DETECT INIT SYSTEM
@@ -660,9 +654,14 @@ fi
 # -----------------------------
 # BASHRC
 # -----------------------------
-log "Setting up bashrc..."
-cp "$DOT_DIR/bashrc" "$HOME/.bashrc"
-echo 'export PATH=$PATH:/usr/lib/go/bin:$HOME/go/bin' >> "$HOME/.bashrc"
+if grep -q 'DARBS_CONFIGURED' "$HOME/.bashrc" 2>/dev/null; then
+    log "Bashrc already configured, skipping (remove DARBS_CONFIGURED line to force reset)."
+else
+    log "Setting up bashrc..."
+    cp "$DOT_DIR/bashrc" "$HOME/.bashrc"
+    echo 'export PATH=$PATH:/usr/lib/go/bin:$HOME/go/bin' >> "$HOME/.bashrc"
+    echo '# DARBS_CONFIGURED' >> "$HOME/.bashrc"
+fi
 
 # -----------------------------
 # NANORC
@@ -692,39 +691,41 @@ log "Setting up XFCE config..."
 
 XFCONF_DIR="$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
 
-rm -rf "$HOME/.config/xfce4"
-mkdir -p "$XFCONF_DIR"
-
-if [ -d "$DOT_DIR/xfce4/xfconf/xfce-perchannel-xml" ]; then
-    cp "$DOT_DIR/xfce4/xfconf/xfce-perchannel-xml/"*.xml "$XFCONF_DIR/"
-    log "XFCE XML configs copied."
-else
-    log "WARNING: xfce4/xfconf/xfce-perchannel-xml not found in dotfiles repo!"
-fi
-
-sed -i "s|/home/drew|$HOME|g" "$XFCONF_DIR/xfce4-desktop.xml" 2>/dev/null || true
-
-cat > "$HOME/.config/xfce4/helpers.rc" <<EOF
+if [ ! -d "$XFCONF_DIR" ]; then
+    mkdir -p "$XFCONF_DIR"
+    if [ -d "$DOT_DIR/xfce4/xfconf/xfce-perchannel-xml" ]; then
+        cp "$DOT_DIR/xfce4/xfconf/xfce-perchannel-xml/"*.xml "$XFCONF_DIR/"
+        log "XFCE XML configs copied."
+    else
+        log "WARNING: xfce4/xfconf/xfce-perchannel-xml not found in dotfiles repo!"
+    fi
+    sed -i "s|/home/drew|$HOME|g" "$XFCONF_DIR/xfce4-desktop.xml" 2>/dev/null || true
+    cat > "$HOME/.config/xfce4/helpers.rc" <<EOF
 TerminalEmulator=xfce4-terminal
 EOF
+else
+    log "XFCE config already present, skipping (delete ~/.config/xfce4 to force reset)."
+fi
 
 # -----------------------------
 # GTK THEME (Everforest)
 # -----------------------------
-log "Installing Everforest GTK theme..."
-# make sure sassc is installed first (needed to compile the theme)
-pacman_install sassc
-mkdir -p "$HOME/.themes"
-rm -rf /tmp/everforest
-git clone --depth 1 https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme.git /tmp/everforest
-/tmp/everforest/themes/install.sh -c dark -t green -d "$HOME/.themes" || log "WARNING: Everforest install.sh failed"
-# verify the theme was actually created
 if [ -d "$HOME/.themes/Everforest-Green-Dark" ]; then
-    log "Everforest theme installed successfully."
+    log "Everforest theme already installed, skipping."
 else
-    log "WARNING: Everforest-Green-Dark not found in ~/.themes"
+    log "Installing Everforest GTK theme..."
+    pacman_install sassc
+    mkdir -p "$HOME/.themes"
+    rm -rf /tmp/everforest
+    git clone --depth 1 https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme.git /tmp/everforest
+    /tmp/everforest/themes/install.sh -c dark -t green -d "$HOME/.themes" || log "WARNING: Everforest install.sh failed"
+    if [ -d "$HOME/.themes/Everforest-Green-Dark" ]; then
+        log "Everforest theme installed successfully."
+    else
+        log "WARNING: Everforest-Green-Dark not found in ~/.themes"
+    fi
+    rm -rf /tmp/everforest
 fi
-rm -rf /tmp/everforest
 
 # -----------------------------
 # THEMING / RICING
@@ -760,8 +761,9 @@ fi
 log "Setting up wallpapers directory..."
 mkdir -p "$HOME/wallpapers"
 if [ -d "$DOT_DIR/wallpapers" ]; then
-    cp -r "$DOT_DIR/wallpapers/." "$HOME/wallpapers/"
-    log "Wallpapers copied from dotfiles."
+    # --ignore-existing skips files already present so reruns don't copy everything again
+    cp -r --no-clobber "$DOT_DIR/wallpapers/." "$HOME/wallpapers/"
+    log "Wallpapers synced from dotfiles (existing files untouched)."
 else
     log "No wallpapers folder found in dotfiles."
 fi
@@ -830,8 +832,12 @@ fi
 # -----------------------------
 # WHISKER MENU - SECURITY SHORTCUTS
 # -----------------------------
-log "Creating security tool shortcuts for Whisker Menu..."
 mkdir -p "$HOME/.local/share/applications"
+_sec_count=$(ls "$HOME/.local/share/applications/sec-"*.desktop 2>/dev/null | wc -l)
+if [ "$_sec_count" -ge 50 ]; then
+    log "Security shortcuts already created ($_sec_count found), skipping."
+else
+log "Creating security tool shortcuts for Whisker Menu..."
 
 # Helper: creates a .desktop entry that opens xfce4-terminal running the tool.
 # Terminal=true lets xfce4-terminal (set as default) launch automatically.
@@ -952,6 +958,7 @@ fi
 
 log "Security shortcuts created in ~/.local/share/applications"
 log "They will appear under 'Security' in Whisker Menu."
+fi  # end security shortcuts skip block
 
 # -----------------------------
 # FINISH
