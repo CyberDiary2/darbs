@@ -70,6 +70,17 @@ go_install() {
     fi
 }
 
+pip_install() {
+    local pkg="$1"
+    if pip show "$pkg" &>/dev/null 2>&1; then
+        log "Skipping $pkg (already installed via pip)"
+    else
+        pip install --break-system-packages "$pkg" 2>/dev/null || \
+        pip install --user "$pkg" 2>/dev/null || \
+        log "WARNING: failed to pip install $pkg"
+    fi
+}
+
 yay_install() {
     local to_install=()
     for pkg in "$@"; do
@@ -527,7 +538,10 @@ yay_install \
     trufflehog \
     gitleaks \
     sherlock \
-    nuclei-templates
+    nuclei-templates \
+    proxychains-ng \
+    android-tools \
+    semgrep
 
 # -----------------------------
 # INSTALL GO
@@ -561,6 +575,12 @@ go_install github.com/projectdiscovery/interactsh/cmd/interactsh-client@latest
 go_install github.com/projectdiscovery/notify/cmd/notify@latest
 go_install github.com/projectdiscovery/shuffledns/cmd/shuffledns@latest
 go_install github.com/projectdiscovery/chaos-client/cmd/chaos@latest
+go_install github.com/tomnomnom/anew@latest
+go_install github.com/tomnomnom/qsreplace@latest
+go_install github.com/tomnomnom/unfurl@latest
+go_install github.com/tomnomnom/meg@latest
+go_install github.com/dwisiswant0/crlfuzz/cmd/crlfuzz@latest
+go_install github.com/devploit/nomore403@latest
 
 # -----------------------------
 # EXTRA UTILITIES
@@ -638,7 +658,19 @@ yay_install \
     ghidra \
     drawio-desktop-bin \
     beef-xss \
-    espanso
+    espanso \
+    apktool \
+    jadx \
+    aws-cli-v2
+
+# -----------------------------
+# PIP SECURITY TOOLS
+# -----------------------------
+log "Installing pip security tools..."
+pip_install uro
+pip_install corscanner
+pip_install jwt_tool
+pip_install s3scanner
 
 # -----------------------------
 # CLONE DOTFILES
@@ -834,7 +866,7 @@ fi
 # -----------------------------
 mkdir -p "$HOME/.local/share/applications"
 _sec_count=$(ls "$HOME/.local/share/applications/sec-"*.desktop 2>/dev/null | wc -l)
-if [ "$_sec_count" -ge 50 ]; then
+if [ "$_sec_count" -ge 75 ]; then
     log "Security shortcuts already created ($_sec_count found), skipping."
 else
 log "Creating security tool shortcuts for Whisker Menu..."
@@ -950,6 +982,32 @@ sec_desktop "Socat"          "socat -h 2>&1 | head -40"         "Multipurpose re
 sec_desktop "TruffleHog"     "trufflehog -h"                    "Credential scanner in git repos"    "Secrets"
 sec_desktop "Gitleaks"       "gitleaks -h"                      "Detect secrets in git history"      "Secrets"
 sec_desktop "Subjack"        "subjack -h"                       "Subdomain takeover detection"       "Secrets"
+sec_desktop "Semgrep"        "semgrep --help"                   "SAST scanner for code review"       "Secrets"
+
+# ── URL / Pipeline Utilities ─────────────────────────────────────────────────
+sec_desktop "Anew"           "anew -h"                          "Append new unique lines to file"    "WebApp"
+sec_desktop "Qsreplace"      "qsreplace -h"                     "Replace query string values"        "WebApp"
+sec_desktop "Unfurl"         "unfurl -h"                        "Extract URL components"             "WebApp"
+sec_desktop "Meg"            "meg -h"                           "Fetch many paths for many hosts"    "WebApp"
+sec_desktop "URO"            "uro -h"                           "Deduplicate and clean URL lists"    "WebApp"
+
+# ── Injection / Bypass ───────────────────────────────────────────────────────
+sec_desktop "CRLFuzz"        "crlfuzz -h"                       "CRLF injection scanner"             "WebApp"
+sec_desktop "NoMore403"      "nomore403 -h"                     "403 Forbidden bypass tool"          "WebApp"
+sec_desktop "CORScanner"     "corscanner -h"                    "CORS misconfiguration scanner"      "WebApp"
+sec_desktop "JWT Tool"       "jwt_tool -h"                      "JWT security testing toolkit"       "WebApp"
+
+# ── Cloud ─────────────────────────────────────────────────────────────────────
+sec_desktop "AWS CLI"        "aws --version && aws help"        "Amazon Web Services CLI"            "Cloud"
+sec_desktop "S3Scanner"      "s3scanner -h"                     "Open S3 bucket scanner"             "Cloud"
+
+# ── Mobile ───────────────────────────────────────────────────────────────────
+sec_desktop "Apktool"        "apktool -h"                       "APK decompilation and rebuilding"   "Mobile"
+sec_desktop "JADX"           "jadx --help"                      "Java decompiler for Android APKs"   "Mobile"
+sec_desktop "ADB"            "adb --version && adb help"        "Android Debug Bridge"               "Mobile"
+
+# ── Proxy / Anonymity ────────────────────────────────────────────────────────
+sec_desktop "Proxychains"    "proxychains -h 2>&1 | head -30"  "Route tools through proxy chain"    "MITM"
 
 # ── Update desktop database so Whisker picks up new entries ──────────────────
 if command -v update-desktop-database &>/dev/null; then
