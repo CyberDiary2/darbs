@@ -574,30 +574,100 @@ fi
 # -----------------------------
 # THEMING / RICING
 # -----------------------------
-log "Setting up picom, rofi, and autostart from dotfiles..."
+log "Applying darbs Everforest theme (replacing BlackArch defaults)..."
 
 mkdir -p "$HOME/.config/gtk-3.0"
-if [ -f "$DOT_DIR/gtk-3.0/settings.ini" ]; then
-    cp "$DOT_DIR/gtk-3.0/settings.ini" "$HOME/.config/gtk-3.0/settings.ini"
-fi
-if [ -f "$DOT_DIR/gtk-2.0/gtkrc-2.0" ]; then
-    cp "$DOT_DIR/gtk-2.0/gtkrc-2.0" "$HOME/.gtkrc-2.0"
+cat > "$HOME/.config/gtk-3.0/settings.ini" <<'EOF'
+[Settings]
+gtk-theme-name = Everforest-Green-Dark
+gtk-icon-theme-name = Papirus-Dark
+gtk-font-name = Noto Sans 10
+gtk-cursor-theme-name = Adwaita
+gtk-cursor-theme-size = 0
+gtk-xft-antialias = 1
+gtk-xft-hinting = 1
+gtk-xft-hintstyle = hintslight
+gtk-xft-rgba = rgb
+EOF
+
+cat > "$HOME/.gtkrc-2.0" <<'EOF'
+gtk-theme-name = "Everforest-Green-Dark"
+gtk-icon-theme-name = "Papirus-Dark"
+gtk-font-name = "Noto Sans 10"
+gtk-cursor-theme-name = "Adwaita"
+gtk-cursor-theme-size = 0
+EOF
+
+mkdir -p "$HOME/.config/gtk-4.0"
+cat > "$HOME/.config/gtk-4.0/settings.ini" <<'EOF'
+[Settings]
+gtk-theme-name = Everforest-Green-Dark
+gtk-icon-theme-name = Papirus-Dark
+gtk-font-name = Noto Sans 10
+gtk-cursor-theme-name = Adwaita
+EOF
+
+XFCONF_DIR="$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
+mkdir -p "$XFCONF_DIR"
+
+cat > "$XFCONF_DIR/xsettings.xml" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xsettings" version="1.0">
+  <property name="Net" type="empty">
+    <property name="ThemeName" type="string" value="Everforest-Green-Dark"/>
+    <property name="IconThemeName" type="string" value="Papirus-Dark"/>
+  </property>
+  <property name="Xft" type="empty">
+    <property name="Antialias" type="int" value="1"/>
+    <property name="Hinting" type="int" value="1"/>
+    <property name="HintStyle" type="string" value="hintslight"/>
+    <property name="RGBA" type="string" value="rgb"/>
+    <property name="DPI" type="int" value="-1"/>
+  </property>
+  <property name="Gtk" type="empty">
+    <property name="FontName" type="string" value="Noto Sans 10"/>
+    <property name="MonospaceFontName" type="string" value="Noto Sans Mono 10"/>
+    <property name="CursorThemeName" type="string" value="Adwaita"/>
+    <property name="CursorThemeSize" type="int" value="0"/>
+    <property name="DecorationLayout" type="string" value="menu:minimize,maximize,close"/>
+  </property>
+</channel>
+EOF
+
+cat > "$XFCONF_DIR/xfwm4.xml" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfwm4" version="1.0">
+  <property name="general" type="empty">
+    <property name="theme" type="string" value="Everforest-Green-Dark"/>
+    <property name="title_font" type="string" value="Noto Sans Bold 9"/>
+    <property name="title_alignment" type="string" value="center"/>
+    <property name="button_layout" type="string" value="CMH|"/>
+    <property name="use_compositing" type="bool" value="true"/>
+  </property>
+</channel>
+EOF
+
+if command -v xfconf-query &>/dev/null && [ -n "$DISPLAY" ]; then
+    xfconf-query -c xsettings -p /Net/ThemeName        -s "Everforest-Green-Dark" --create -t string
+    xfconf-query -c xsettings -p /Net/IconThemeName     -s "Papirus-Dark"          --create -t string
+    xfconf-query -c xsettings -p /Gtk/FontName          -s "Noto Sans 10"          --create -t string
+    xfconf-query -c xsettings -p /Gtk/CursorThemeName   -s "Adwaita"               --create -t string
+    xfconf-query -c xsettings -p /Xft/Antialias         -s 1                       --create -t int
+    xfconf-query -c xsettings -p /Xft/Hinting           -s 1                       --create -t int
+    xfconf-query -c xsettings -p /Xft/HintStyle         -s "hintslight"            --create -t string
+    xfconf-query -c xsettings -p /Xft/RGBA              -s "rgb"                   --create -t string
+    xfconf-query -c xfwm4     -p /general/theme         -s "Everforest-Green-Dark" --create -t string
+    xfconf-query -c xfwm4     -p /general/title_font    -s "Noto Sans Bold 9"      --create -t string
 fi
 
 mkdir -p "$HOME/.config/picom"
-if [ -f "$DOT_DIR/picom/picom.conf" ]; then
-    cp "$DOT_DIR/picom/picom.conf" "$HOME/.config/picom/picom.conf"
-fi
+[ -f "$DOT_DIR/picom/picom.conf" ] && cp "$DOT_DIR/picom/picom.conf" "$HOME/.config/picom/picom.conf"
 
 mkdir -p "$HOME/.config/rofi"
-if [ -f "$DOT_DIR/rofi/config.rasi" ]; then
-    cp "$DOT_DIR/rofi/config.rasi" "$HOME/.config/rofi/config.rasi"
-fi
+[ -f "$DOT_DIR/rofi/config.rasi" ] && cp "$DOT_DIR/rofi/config.rasi" "$HOME/.config/rofi/config.rasi"
 
 mkdir -p "$HOME/.config/autostart"
-if [ -d "$DOT_DIR/autostart" ]; then
-    cp "$DOT_DIR/autostart/"*.desktop "$HOME/.config/autostart/"
-fi
+[ -d "$DOT_DIR/autostart" ] && cp "$DOT_DIR/autostart/"*.desktop "$HOME/.config/autostart/" 2>/dev/null || true
 
 # -----------------------------
 # FASTFETCH (darbs branding, no BlackArch)
