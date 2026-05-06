@@ -355,6 +355,26 @@ EOF
 fi
 
 # -----------------------------
+# ADD BLACKARCH REPO (if needed)
+# -----------------------------
+if ! grep -qE '^\[blackarch\]' /etc/pacman.conf 2>/dev/null; then
+    log "Adding BlackArch repository..."
+    curl -O https://blackarch.org/strap.sh
+    chmod +x strap.sh
+    sudo ./strap.sh
+    rm -f strap.sh
+    sudo pacman -Sy --noconfirm
+else
+    log "BlackArch repo already present, skipping."
+fi
+
+# -----------------------------
+# ELOGIND (libsystemd shim for Artix)
+# lets BlackArch packages that link against libsystemd.so install correctly
+# -----------------------------
+pacman_install elogind
+
+# -----------------------------
 # BASE SYSTEM + XFCE
 # -----------------------------
 log "Installing XFCE and core packages..."
