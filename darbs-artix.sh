@@ -811,29 +811,34 @@ fun display_normal_callback() {
 Plymouth.SetDisplayNormalFunction(display_normal_callback);
 PLYSCRIPT
 
-# wire up mkinitcpio: swap 'encrypt' for 'plymouth plymouth-encrypt' so
-# the LUKS prompt appears in the splash; if no encrypt hook, insert before filesystems
-if ! grep -q '\bplymouth\b' /etc/mkinitcpio.conf 2>/dev/null; then
-    if grep -q '\bencrypt\b' /etc/mkinitcpio.conf 2>/dev/null; then
-        sudo sed -i 's/\bencrypt\b/plymouth plymouth-encrypt/' /etc/mkinitcpio.conf
-        log "Replaced 'encrypt' hook with 'plymouth plymouth-encrypt' in mkinitcpio.conf"
-    else
-        sudo sed -i 's/\bfilesystems\b/plymouth filesystems/' /etc/mkinitcpio.conf
-        log "Added 'plymouth' hook before 'filesystems' in mkinitcpio.conf"
-    fi
-fi
-
-# set as default theme and rebuild initramfs
+# set darbs as the default theme (safe — only writes a config file)
 sudo plymouth-set-default-theme darbs 2>/dev/null || true
-sudo mkinitcpio -P 2>/dev/null || log "WARNING: mkinitcpio rebuild failed — run manually: sudo mkinitcpio -P"
 
-# add 'quiet splash' to GRUB kernel cmdline if not already there
-if [ -f /etc/default/grub ] && ! grep 'GRUB_CMDLINE_LINUX_DEFAULT' /etc/default/grub | grep -q 'splash'; then
-    sudo sed -i 's/\(GRUB_CMDLINE_LINUX_DEFAULT="[^"]*\)"/\1 quiet splash"/' /etc/default/grub
-    sudo grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || log "WARNING: grub-mkconfig failed — run manually: sudo grub-mkconfig -o /boot/grub/grub.cfg"
-fi
-
-log "darbs Plymouth theme installed — reboot to see startup, shutdown, and LUKS encryption splash."
+log "darbs Plymouth theme files installed."
+echo ""
+echo "=========================================================="
+echo " PLYMOUTH MANUAL ACTIVATION — do these steps yourself:"
+echo "=========================================================="
+echo ""
+echo " 1. Verify Plymouth hooks are present:"
+echo "      ls /usr/lib/initcpio/hooks/plymouth"
+echo "      ls /usr/lib/initcpio/hooks/plymouth-encrypt"
+echo ""
+echo " 2. Edit /etc/mkinitcpio.conf HOOKS line:"
+echo "    - Using LUKS: replace 'encrypt' with 'plymouth plymouth-encrypt'"
+echo "    - No LUKS:    add 'plymouth' before 'filesystems'"
+echo "    Current HOOKS:"
+grep '^HOOKS' /etc/mkinitcpio.conf 2>/dev/null || echo "    (could not read mkinitcpio.conf)"
+echo ""
+echo " 3. Rebuild initramfs:"
+echo "      sudo mkinitcpio -P"
+echo ""
+echo " 4. Add 'quiet splash' to GRUB_CMDLINE_LINUX_DEFAULT in /etc/default/grub"
+echo "    then run: sudo grub-mkconfig -o /boot/grub/grub.cfg"
+echo ""
+echo " 5. Reboot."
+echo "=========================================================="
+echo ""
 fi  # end plymouth skip block
 
 # -----------------------------
