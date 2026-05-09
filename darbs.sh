@@ -13,22 +13,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 #                                                                              #
 ################################################################################
 
-####################################################################
-#
 echo -e "\e[38;5;22m
 ██████╗  █████╗ ██████╗ ██████╗ ███████╗
 ██╔══██╗██╔══██╗██╔══██╗██╔══██╗██╔════╝
-██║  ██║███████║██████╔╝██████╔╝███████╗
+██║  ██║███████║██████╔╝██████╔╝███████║
 ██║  ██║██╔══██║██╔══██╗██╔══██╗╚════██║
 ██████╔╝██║  ██║██║  ██║██████╔╝███████║
 ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝
 \e[0m"
-####################################################################
-
-
-
-
-
 
 set -e
 
@@ -37,14 +29,19 @@ exec > >(tee -a "$LOGFILE") 2>&1
 
 echo "=== DARBS (Drew's Auto-Rice Bug Bounty Bootstrapping Scripts) ==="
 
-# -----------------------------
-# DISTRO DETECTION
-# -----------------------------
-# Detect whether this is plain Arch or BlackArch (Arch with the blackarch repo
-# already configured). When running on BlackArch the strap.sh bootstrap is
-# skipped entirely, and most security tools will already be present so the
-# pacman_install helper short circuits them. Vanilla Arch goes through the
-# full bootstrap path.
+# ── config ────────────────────────────────────────────────────────────────────
+DOTFILES_REPO="https://github.com/CyberDiary2/dotfiles"
+DOT_DIR="$HOME/.dotfiles"
+
+# ── colors ────────────────────────────────────────────────────────────────────
+GREEN="\e[32m"
+BLUE="\e[34m"
+RESET="\e[0m"
+
+log()  { echo -e "${GREEN}==>${RESET} $1"; }
+warn() { echo -e "\e[33m[WARN]${RESET} $1"; }
+
+# ── distro detection ──────────────────────────────────────────────────────────
 IS_BLACKARCH=false
 if grep -qE '^\[blackarch\]' /etc/pacman.conf 2>/dev/null; then
     IS_BLACKARCH=true
@@ -56,43 +53,18 @@ else
     echo -e "\e[34m==> Detected vanilla Arch. Will bootstrap BlackArch repo.\e[0m"
 fi
 
-# -----------------------------
-# CONFIG (EDIT THIS)
-# -----------------------------
-DOTFILES_REPO="https://github.com/CyberDiary2/dotfiles"
-DOT_DIR="$HOME/.dotfiles"
-
-# -----------------------------
-# COLORS
-# -----------------------------
-GREEN="\e[32m"
-BLUE="\e[34m"
-RESET="\e[0m"
-
-log() { echo -e "${GREEN}==>${RESET} $1"; }
-
+# ── helpers ───────────────────────────────────────────────────────────────────
 pacman_install() {
     local to_install=()
     for pkg in "$@"; do
         if pacman -Qi "$pkg" &>/dev/null; then
-            log "Skipping $pkg (already installed)"
+            log "skipping $pkg (already installed)"
         else
             to_install+=("$pkg")
         fi
     done
     if [ ${#to_install[@]} -gt 0 ]; then
-        sudo pacman -S --noconfirm "${to_install[@]}"
-    fi
-}
-
-go_install() {
-    local pkg="$1"
-    local bin
-    bin="$(basename "${pkg%%@*}")"
-    if command -v "$bin" &>/dev/null; then
-        log "Skipping $bin (already installed)"
-    else
-        go install "$pkg"
+        sudo pacman -S --noconfirm --needed "${to_install[@]}"
     fi
 }
 
@@ -100,7 +72,7 @@ yay_install() {
     local to_install=()
     for pkg in "$@"; do
         if pacman -Qi "$pkg" &>/dev/null; then
-            log "Skipping $pkg (already installed)"
+            log "skipping $pkg (already installed)"
         else
             to_install+=("$pkg")
         fi
@@ -110,16 +82,23 @@ yay_install() {
     fi
 }
 
-# -----------------------------
-# SYSTEM UPDATE
-# -----------------------------
-log "Updating system..."
+go_install() {
+    local pkg="$1"
+    local bin
+    bin="$(basename "${pkg%%@*}")"
+    if command -v "$bin" &>/dev/null; then
+        log "skipping $bin (already installed)"
+    else
+        go install "$pkg"
+    fi
+}
+
+# ── system update ─────────────────────────────────────────────────────────────
+log "updating system..."
 sudo pacman -Syu --noconfirm
 
-# -----------------------------
-# BASE SYSTEM + XFCE
-# -----------------------------
-log "Installing XFCE and core packages..."
+# ── base system + xfce ────────────────────────────────────────────────────────
+log "installing xfce and core packages..."
 pacman_install \
     xorg \
     xfce4 xfce4-goodies \
@@ -151,7 +130,6 @@ pacman_install \
     qalculate-gtk \
     gnucash \
     rhythmbox \
-    caligula \
     inkscape \
     keepassxc \
     copyq \
@@ -167,52 +145,41 @@ pacman_install \
     xfce4-weather-plugin \
     xfce4-systemload-plugin
 
-
-# -----------------------------
-# ENABLE SERVICES
-# -----------------------------
-log "Enabling services..."
+# ── enable services ───────────────────────────────────────────────────────────
+log "enabling services..."
 sudo systemctl enable NetworkManager
 sudo systemctl start NetworkManager
 
-# -----------------------------
-# WIFI SETUP
-# -----------------------------
-log "Checking for WiFi connectivity..."
+# ── wifi check ────────────────────────────────────────────────────────────────
+log "checking for internet connectivity..."
 if ! ping -c 1 -W 3 archlinux.org &>/dev/null; then
-    log "No internet detected. Launching WiFi setup..."
+    log "no internet detected -- launching wifi setup..."
     nmtui connect
 fi
 
-# Disable any other display manager that might already be enabled before
-# enabling lightdm. BlackArch ISOs and some Arch installs ship with sddm,
-# gdm, lxdm, etc.; having two enabled at once causes a graphical boot conflict.
+# ── display manager ───────────────────────────────────────────────────────────
 for dm in sddm gdm lxdm xdm; do
     if systemctl is-enabled "$dm" &>/dev/null; then
-        log "Disabling existing display manager: $dm"
+        log "disabling existing display manager: $dm"
         sudo systemctl disable "$dm"
     fi
 done
 sudo systemctl enable lightdm
 
-# -----------------------------
-# ADD BLACKARCH REPO
-# -----------------------------
+# ── blackarch repo ────────────────────────────────────────────────────────────
 if [ "$IS_BLACKARCH" = false ]; then
-    log "Adding BlackArch repository..."
+    log "adding blackarch repository..."
     curl -O https://blackarch.org/strap.sh
     chmod +x strap.sh
     sudo ./strap.sh
     rm strap.sh
     sudo pacman -Sy --noconfirm
 else
-    log "BlackArch repo already present, skipping bootstrap."
+    log "blackarch repo already present, skipping bootstrap."
 fi
 
-# -----------------------------
-# BUG BOUNTY + SECURITY TOOLS
-# -----------------------------
-log "Installing bug bounty and security tools..."
+# ── security tools ────────────────────────────────────────────────────────────
+log "installing bug bounty and security tools..."
 pacman_install \
     nmap \
     burpsuite \
@@ -264,51 +231,68 @@ pacman_install \
     foremost \
     socat
 
+# ── top 100 blackarch tools (additional) ─────────────────────────────────────
+log "installing additional blackarch tools..."
 
-# -----------------------------
-# INSTALL GO
-# -----------------------------
-log "Installing Go..."
-pacman_install go
+# web
+pacman_install \
+    feroxbuster \
+    dirb \
+    xsstrike \
+    arjun \
+    wpscan \
+    wafw00f
 
-# -----------------------------
-# TOMNOMNOM TOOLS (Go)
-# -----------------------------
-log "Installing Tomnomnom Go tools..."
-export PATH=$PATH:/usr/lib/go/bin
-export GOPATH="$HOME/go"
+# recon
+pacman_install \
+    dnsrecon \
+    fierce \
+    spiderfoot \
+    netdiscover \
+    arp-scan \
+    dmitry
 
-go_install github.com/tomnomnom/waybackurls@latest
-go_install github.com/tomnomnom/httprobe@latest
-go_install github.com/tomnomnom/gf@latest
-go_install github.com/tomnomnom/assetfinder@latest
-go_install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
-go_install github.com/projectdiscovery/katana/cmd/katana@latest
-go_install github.com/hahwul/dalfox/v2@latest
-go_install github.com/s0md3v/smap/cmd/smap@latest
-go_install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
-go_install github.com/sensepost/gowitness@latest
-go_install github.com/projectdiscovery/dnsx/cmd/dnsx@latest
+# passwords / cracking
+pacman_install \
+    crunch \
+    rsmangler \
+    fcrackzip \
+    hash-identifier \
+    ncrack \
+    wordlistctl
 
+# wireless
+pacman_install \
+    mdk4 \
+    cowpatty \
+    pixiewps \
+    bully \
+    hostapd-wpe
 
-# -----------------------------
-# PYTHON SECURITY TOOLS
-# -----------------------------
-#log "Installing Python security tools..."
+# active directory / post-exploitation
+pacman_install \
+    evil-winrm \
+    certipy-ad
 
-#pip install --user xsstrike
-#done
+# network / mitm
+pacman_install \
+    dsniff \
+    sslstrip \
+    proxychains-ng \
+    hping \
+    ngrep
 
-# -----------------------------
-# NAHAMSEC TOOLS
-# -----------------------------
-#log "Installing NahamSec tools..."
-#git clone https://github.com/nahamsec/lazys3.git "$HOME/tools/lazys3" 2>/dev/null || true
+# reverse engineering / exploit dev
+pacman_install \
+    radare2 \
+    python-pwntools
 
-# -----------------------------
-# EXTRA UTILITIES
-# -----------------------------
-log "Installing extra utilities..."
+# osint
+pacman_install \
+    sherlock
+
+# ── extra utilities ───────────────────────────────────────────────────────────
+log "installing extra utilities..."
 pacman_install \
     ncdu \
     ripgrep \
@@ -322,19 +306,41 @@ pacman_install \
     inetutils \
     net-tools \
     btop \
-    python \
-    python-pip 
-    
-    
+    python
 
-# -----------------------------
-# INSTALL AUR HELPER (YAY)
-# -----------------------------
+# ── go ────────────────────────────────────────────────────────────────────────
+log "installing go..."
+pacman_install go
 
+export GOPATH="$HOME/go"
+export PATH="/usr/lib/go/bin:$HOME/go/bin:$HOME/.local/bin:$PATH"
 
+# ── go tools ──────────────────────────────────────────────────────────────────
+log "installing go-based tools..."
+go_install github.com/tomnomnom/waybackurls@latest
+go_install github.com/tomnomnom/httprobe@latest
+go_install github.com/tomnomnom/gf@latest
+go_install github.com/tomnomnom/assetfinder@latest
+go_install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+go_install github.com/projectdiscovery/katana/cmd/katana@latest
+go_install github.com/projectdiscovery/httpx/cmd/httpx@latest
+go_install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
+go_install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
+go_install github.com/projectdiscovery/dnsx/cmd/dnsx@latest
+go_install github.com/hahwul/dalfox/v2@latest
+go_install github.com/s0md3v/smap/cmd/smap@latest
+go_install github.com/sensepost/gowitness@latest
+go_install github.com/haccer/subjack@latest
+go_install github.com/ropnop/kerbrute@latest
 
-log "Installing yay..."
-if ! command -v yay &> /dev/null; then
+mkdir -p "$HOME/.gf"
+git clone --depth 1 https://github.com/1ndianl33t/Gf-Patterns /tmp/gf-patterns 2>/dev/null || true
+cp /tmp/gf-patterns/*.json "$HOME/.gf/" 2>/dev/null || true
+rm -rf /tmp/gf-patterns
+
+# ── yay ───────────────────────────────────────────────────────────────────────
+log "installing yay..."
+if ! command -v yay &>/dev/null; then
     git clone https://aur.archlinux.org/yay.git /tmp/yay
     cd /tmp/yay
     makepkg -si --noconfirm
@@ -342,207 +348,131 @@ if ! command -v yay &> /dev/null; then
     rm -rf /tmp/yay
 fi
 
-# -----------------------------
-# AUR PACKAGES
-# -----------------------------
-log "Installing AUR packages: VSCodium..."
-#paru -S --noconfirm vscodium-bin
+# ── aur packages ──────────────────────────────────────────────────────────────
+log "installing aur packages..."
 yay_install \
- vscodium-bin \
- obsidian \
- nuclei \
- medusa \
- patator \
- subjack \
- eyewitness \
- scout-suite \
- planify \
- peek \
- ttf-jetbrains-mono-nerd \
- ghidra \
- drawio-desktop-bin \
- beef-xss
+    vscodium-bin \
+    obsidian \
+    medusa \
+    patator \
+    subjack \
+    eyewitness \
+    scout-suite \
+    planify \
+    peek \
+    ttf-jetbrains-mono-nerd \
+    ghidra \
+    drawio-desktop-bin \
+    beef-xss
 
-
-
-# -----------------------------
-# CLONE DOTFILES
-# -----------------------------
-log "Cloning dotfiles..."
+# ── dotfiles ──────────────────────────────────────────────────────────────────
+log "cloning dotfiles..."
 if [ ! -d "$DOT_DIR" ]; then
     git clone "$DOTFILES_REPO" "$DOT_DIR"
 else
-    log "Dotfiles already exist, pulling latest..."
+    log "dotfiles already exist, pulling latest..."
     git -C "$DOT_DIR" pull
 fi
 
-# -----------------------------
-# BASHRC
-# -----------------------------
-log "Setting up bashrc..."
+# ── bashrc ────────────────────────────────────────────────────────────────────
+log "setting up bashrc..."
 cp "$DOT_DIR/bashrc" "$HOME/.bashrc"
-# Append Go path so tomnomnom tools are available in shell
-echo 'export PATH=$PATH:/usr/lib/go/bin:$HOME/go/bin' >> "$HOME/.bashrc"
+echo 'export GOPATH=$HOME/go' >> "$HOME/.bashrc"
+echo 'export PATH=/usr/lib/go/bin:$HOME/go/bin:$HOME/.local/bin:$PATH' >> "$HOME/.bashrc"
 
-#-----------------------------
-# NANORC
-#-----------------------------
-log "Setting up nanorc..."
+# ── nanorc ────────────────────────────────────────────────────────────────────
+log "setting up nanorc..."
 cp "$DOT_DIR/nanorc.nanorc" "$HOME/.nanorc"
 
-# -----------------------------
-# TMUX CONFIG
-# -----------------------------
-log "Setting up tmux config..."
-if [ -f "$DOT_DIR/tmux-help.txt" ]; then
-    cp "$DOT_DIR/tmux-help.txt" "$HOME/.tmux-help.txt"
-fi
+# ── tmux ──────────────────────────────────────────────────────────────────────
+log "setting up tmux config..."
+[ -f "$DOT_DIR/tmux-help.txt" ] && cp "$DOT_DIR/tmux-help.txt" "$HOME/.tmux-help.txt"
 if [ -f "$SCRIPT_DIR/.tmux.conf" ]; then
     cp "$SCRIPT_DIR/.tmux.conf" "$HOME/.tmux.conf"
 elif [ -f "$DOT_DIR/.tmux.conf" ]; then
     cp "$DOT_DIR/.tmux.conf" "$HOME/.tmux.conf"
 else
-    log "WARNING: No .tmux.conf found in darbs repo or dotfiles repo"
+    warn "no .tmux.conf found in darbs repo or dotfiles repo"
 fi
 
-
-
-
-# -----------------------------
-# XFCE CONFIG
-# -----------------------------
-log "Setting up XFCE config..."
-
+# ── xfce4 config ──────────────────────────────────────────────────────────────
+log "setting up xfce4 config..."
 XFCONF_DIR="$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
 
-# Wipe any existing XFCE config to start completely clean
-rm -rf "$HOME/.config/xfce4"
+if [ -d "$HOME/.config/xfce4" ]; then
+    mv "$HOME/.config/xfce4" "$HOME/.config/xfce4.bak.$(date +%s)"
+    log "backed up existing xfce4 config"
+fi
 mkdir -p "$XFCONF_DIR"
 
-# Copy all XML config files directly from dotfiles repo
 if [ -d "$DOT_DIR/xfce4/xfconf/xfce-perchannel-xml" ]; then
     cp "$DOT_DIR/xfce4/xfconf/xfce-perchannel-xml/"*.xml "$XFCONF_DIR/"
-    log "XFCE XML configs copied."
+    sed -i "s|/home/drew|$HOME|g" "$XFCONF_DIR/xfce4-desktop.xml"
+    log "xfce4 xml configs copied"
 else
-    log "WARNING: xfce4/xfconf/xfce-perchannel-xml not found in dotfiles repo!"
+    warn "xfce4/xfconf/xfce-perchannel-xml not found in dotfiles repo"
 fi
 
-# Fix hardcoded /home/drew paths to match the current user's home directory
-sed -i "s|/home/drew|$HOME|g" "$XFCONF_DIR/xfce4-desktop.xml"
-
-# Set xfce4-terminal as default terminal
 cat > "$HOME/.config/xfce4/helpers.rc" <<EOF
 TerminalEmulator=xfce4-terminal
 EOF
 
-# -----------------------------
-# GTK THEME (Everforest)
-# -----------------------------
-log "Installing Everforest GTK theme..."
+# ── gtk theme (everforest) ────────────────────────────────────────────────────
+log "installing everforest gtk theme..."
 mkdir -p "$HOME/.themes"
 rm -rf /tmp/everforest
 git clone --depth 1 https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme.git /tmp/everforest
-/tmp/everforest/themes/install.sh -c dark -t green -d "$HOME/.themes"
+bash /tmp/everforest/themes/install.sh -c dark -t green -d "$HOME/.themes"
 rm -rf /tmp/everforest
 
-# -----------------------------
-# THEMING / RICING
-# -----------------------------
-log "Setting up picom, rofi, and autostart from dotfiles..."
+# ── gtk / picom / rofi / autostart ───────────────────────────────────────────
+log "applying gtk, picom, rofi, autostart configs..."
 
-# GTK theme configs
 mkdir -p "$HOME/.config/gtk-3.0"
-if [ -f "$DOT_DIR/gtk-3.0/settings.ini" ]; then
-    cp "$DOT_DIR/gtk-3.0/settings.ini" "$HOME/.config/gtk-3.0/settings.ini"
-fi
-if [ -f "$DOT_DIR/gtk-2.0/gtkrc-2.0" ]; then
-    cp "$DOT_DIR/gtk-2.0/gtkrc-2.0" "$HOME/.gtkrc-2.0"
-fi
+[ -f "$DOT_DIR/gtk-3.0/settings.ini" ] && cp "$DOT_DIR/gtk-3.0/settings.ini" "$HOME/.config/gtk-3.0/settings.ini"
+[ -f "$DOT_DIR/gtk-2.0/gtkrc-2.0" ]   && cp "$DOT_DIR/gtk-2.0/gtkrc-2.0" "$HOME/.gtkrc-2.0"
 
-# Picom
 mkdir -p "$HOME/.config/picom"
-if [ -f "$DOT_DIR/picom/picom.conf" ]; then
-    cp "$DOT_DIR/picom/picom.conf" "$HOME/.config/picom/picom.conf"
-fi
+[ -f "$DOT_DIR/picom/picom.conf" ] && cp "$DOT_DIR/picom/picom.conf" "$HOME/.config/picom/picom.conf"
 
-# Rofi
 mkdir -p "$HOME/.config/rofi"
-if [ -f "$DOT_DIR/rofi/config.rasi" ]; then
-    cp "$DOT_DIR/rofi/config.rasi" "$HOME/.config/rofi/config.rasi"
-fi
+[ -f "$DOT_DIR/rofi/config.rasi" ] && cp "$DOT_DIR/rofi/config.rasi" "$HOME/.config/rofi/config.rasi"
 
-# Autostart entries (picom, plank)
 mkdir -p "$HOME/.config/autostart"
 if [ -d "$DOT_DIR/autostart" ]; then
-    cp "$DOT_DIR/autostart/"*.desktop "$HOME/.config/autostart/"
+    cp "$DOT_DIR/autostart/"*.desktop "$HOME/.config/autostart/" 2>/dev/null || true
 fi
 
-# -----------------------------
-# WALLPAPERS
-# -----------------------------
-log "Setting up wallpapers directory..."
+# ── wallpapers ────────────────────────────────────────────────────────────────
+log "setting up wallpapers..."
 mkdir -p "$HOME/wallpapers"
 if [ -d "$DOT_DIR/wallpapers" ]; then
     cp -r "$DOT_DIR/wallpapers/." "$HOME/wallpapers/"
-    log "Wallpapers copied from dotfiles."
-else
-    log "No wallpapers folder found in dotfiles — add images to ~/wallpapers/ manually."
 fi
 
-#Set wallpaper 
-
-# xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/image-path -s /home/wallpers/0327.jpg && xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/image-style -s 5
-
-#!/bin/bash
-
 WALL="$HOME/wallpapers/0327.jpg"
+if [ -n "$DISPLAY" ] && [ -f "$WALL" ]; then
+    xfconf-query -c xfce4-desktop -l | grep last-image | while read -r path; do
+        xfconf-query -c xfce4-desktop -p "$path" -s "$WALL"
+    done
+    xfconf-query -c xfce4-desktop -l | grep image-style | while read -r path; do
+        xfconf-query -c xfce4-desktop -p "$path" -s 3
+    done
+else
+    warn "no display detected -- set wallpaper manually after login"
+fi
 
-# Set wallpaper for all monitors/workspaces
-xfconf-query -c xfce4-desktop -l | grep last-image | while read -r path; do
-  xfconf-query -c xfce4-desktop -p "$path" -s "$WALL"
-done
-
-# Set style to stretched
-xfconf-query -c xfce4-desktop -l | grep image-style | while read -r path; do
-  xfconf-query -c xfce4-desktop -p "$path" -s 3
-done
-
-sudo cp -f ~/wallpapers/0327.jpg /usr/share/backgrounds/xfce/xfce-x.svg
-
-# -----------------------------
-# LIGHTDM GREETER THEME
-# -----------------------------
-log "Configuring LightDM greeter to match Everforest theme..."
+# ── lightdm greeter ───────────────────────────────────────────────────────────
+log "configuring lightdm greeter..."
 if [ -f "$DOT_DIR/lightdm-gtk-greeter.conf" ]; then
     sudo cp "$DOT_DIR/lightdm-gtk-greeter.conf" /etc/lightdm/lightdm-gtk-greeter.conf
-    # Copy Everforest theme to system-wide location so greeter (running as root) can access it
     sudo mkdir -p /usr/share/themes
     sudo cp -r "$HOME/.themes/Everforest-Green-Dark" /usr/share/themes/ 2>/dev/null || true
 fi
 
-GO_BIN="$HOME/.local/bin"
-
-mkdir -p "$GO_BIN"
-
-#------------------------------
-# MORE GO 
-#------------------------------
-
-export PATH=$HOME/go/bin:$HOME/.local/bin:$PATH
-GO111MODULE=on go_install github.com/projectdiscovery/httpx/cmd/httpx@latest
-go_install github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
-go_install github.com/tomnomnom/assetfinder@latest
-mkdir -p "$HOME/.gf"
-git clone --depth 1 https://github.com/1ndianl33t/Gf-Patterns /tmp/gf-patterns 2>/dev/null && cp /tmp/gf-patterns/*.json "$HOME/.gf/" && rm -rf /tmp/gf-patterns
-echo 'export PATH=$HOME/go/bin:$HOME/.local/bin:$PATH' >> ~/.bashrc
-
-# -----------------------------
-# FINISH
-# -----------------------------
-log "DARBS installation complete!"
-
-echo -e "${BLUE}"
-echo "====================================="
-echo " DONE! Reboot into XFCE."
-echo "====================================="
-echo -e "${RESET}"
+# ── done ──────────────────────────────────────────────────────────────────────
+log "darbs installation complete!"
+echo ""
+echo -e "${BLUE}=====================================${RESET}"
+echo " done! reboot into xfce."
+echo -e "${BLUE}=====================================${RESET}"
