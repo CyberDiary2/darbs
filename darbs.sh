@@ -64,7 +64,13 @@ pacman_install() {
         fi
     done
     if [ ${#to_install[@]} -gt 0 ]; then
-        sudo pacman -S --noconfirm --needed "${to_install[@]}"
+        if ! sudo pacman -S --noconfirm --needed "${to_install[@]}" 2>/dev/null; then
+            warn "bulk install failed, retrying one by one..."
+            for pkg in "${to_install[@]}"; do
+                sudo pacman -S --noconfirm --needed "$pkg" 2>/dev/null \
+                    || warn "skipping $pkg (not found or failed)"
+            done
+        fi
     fi
 }
 
@@ -78,7 +84,13 @@ yay_install() {
         fi
     done
     if [ ${#to_install[@]} -gt 0 ]; then
-        yay -S --noconfirm "${to_install[@]}"
+        if ! yay -S --noconfirm "${to_install[@]}" 2>/dev/null; then
+            warn "bulk aur install failed, retrying one by one..."
+            for pkg in "${to_install[@]}"; do
+                yay -S --noconfirm "$pkg" 2>/dev/null \
+                    || warn "skipping $pkg (aur: not found or failed)"
+            done
+        fi
     fi
 }
 
@@ -89,7 +101,7 @@ go_install() {
     if command -v "$bin" &>/dev/null; then
         log "skipping $bin (already installed)"
     else
-        go install "$pkg"
+        go install "$pkg" 2>/dev/null || warn "skipping $bin (go install failed)"
     fi
 }
 
@@ -290,6 +302,67 @@ pacman_install \
 # osint
 pacman_install \
     sherlock
+
+# ── kali linux default tools (arch/blackarch equivalents) ────────────────────
+log "installing kali default tool equivalents..."
+
+# dns
+pacman_install \
+    dnschef \
+    dnsmap \
+    dnstracer \
+    dnswalk
+
+# web
+pacman_install \
+    wapiti \
+    weevely \
+    xsser \
+    sslyze \
+    slowhttptest \
+    padbuster \
+    cutycapt \
+    lbd \
+    davtest \
+    parsero
+
+# network
+pacman_install \
+    fping \
+    tcpreplay \
+    ike-scan \
+    sslsplit \
+    netmask \
+    stunnel
+
+# passwords
+pacman_install \
+    rainbowcrack \
+    statsprocessor \
+    chntpw \
+    polenum
+
+# exploitation
+pacman_install \
+    legion \
+    msfpc
+
+# voip
+pacman_install \
+    sipvicious
+
+# bluetooth
+pacman_install \
+    bluelog \
+    blueranger \
+    bluesnarfer
+
+# misc / post-exploitation
+pacman_install \
+    smtp-user-enum \
+    unix-privesc-check \
+    fern-wifi-cracker \
+    openvas
 
 # ── 50 more blackarch tools ───────────────────────────────────────────────────
 log "installing 50 additional blackarch tools..."
