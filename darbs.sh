@@ -599,6 +599,9 @@ mkdir -p "$HOME/.config/gtk-3.0"
 mkdir -p "$HOME/.config/picom"
 [ -f "$DOT_DIR/picom/picom.conf" ] && cp "$DOT_DIR/picom/picom.conf" "$HOME/.config/picom/picom.conf"
 
+mkdir -p "$HOME/.config/conky"
+[ -f "$DOT_DIR/conky/conky.conf" ] && cp "$DOT_DIR/conky/conky.conf" "$HOME/.config/conky/conky.conf"
+
 mkdir -p "$HOME/.config/rofi"
 [ -f "$DOT_DIR/rofi/config.rasi" ] && cp "$DOT_DIR/rofi/config.rasi" "$HOME/.config/rofi/config.rasi"
 
