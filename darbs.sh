@@ -444,6 +444,11 @@ pacman_install \
 pacman_install \
     lynis
 
+# ── blackarch groups ──────────────────────────────────────────────────────────
+log "installing blackarch-webapp group..."
+sudo pacman -S --noconfirm --needed blackarch-webapp 2>/dev/null \
+    || warn "blackarch-webapp group install had errors, some tools may be missing"
+
 # ── extra utilities ───────────────────────────────────────────────────────────
 log "installing extra utilities..."
 pacman_install \
