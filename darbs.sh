@@ -291,6 +291,86 @@ pacman_install \
 pacman_install \
     sherlock
 
+# ── 50 more blackarch tools ───────────────────────────────────────────────────
+log "installing 50 additional blackarch tools..."
+
+# web
+pacman_install \
+    sqlninja \
+    joomscan \
+    skipfish \
+    sublist3r \
+    whatwaf
+
+# exploitation
+pacman_install \
+    routersploit \
+    set \
+    armitage \
+    empire
+
+# passwords / cracking
+pacman_install \
+    hcxtools \
+    hcxdumptool \
+    hashcat-utils \
+    pdfcrack \
+    ophcrack \
+    pipal \
+    truecrack
+
+# wireless
+pacman_install \
+    airgeddon \
+    wifiphisher
+
+# mobile
+pacman_install \
+    apktool \
+    dex2jar \
+    androguard
+
+# network / pivoting
+pacman_install \
+    python-scapy \
+    yersinia \
+    netsniff-ng \
+    p0f \
+    tcpflow \
+    sshuttle \
+    iodine \
+    zmap \
+    redsocks \
+    unicornscan
+
+# forensics
+pacman_install \
+    scalpel \
+    dc3dd \
+    perl-image-exiftool \
+    testdisk \
+    python-oletools \
+    peepdf
+
+# reverse engineering / debugging
+pacman_install \
+    ltrace \
+    rizin \
+    gdb
+
+# osint / cloud
+pacman_install \
+    phoneinfoga \
+    metagoofil \
+    shodan \
+    instaloader \
+    pacu \
+    aws-cli
+
+# auditing
+pacman_install \
+    lynis
+
 # ── extra utilities ───────────────────────────────────────────────────────────
 log "installing extra utilities..."
 pacman_install \
@@ -332,6 +412,8 @@ go_install github.com/s0md3v/smap/cmd/smap@latest
 go_install github.com/sensepost/gowitness@latest
 go_install github.com/haccer/subjack@latest
 go_install github.com/ropnop/kerbrute@latest
+go_install github.com/jpillora/chisel@latest
+go_install github.com/nicocha30/ligolo-ng/cmd/proxy@latest
 
 mkdir -p "$HOME/.gf"
 git clone --depth 1 https://github.com/1ndianl33t/Gf-Patterns /tmp/gf-patterns 2>/dev/null || true
