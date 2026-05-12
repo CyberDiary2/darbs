@@ -505,7 +505,6 @@ rm -rf /tmp/gf-patterns
 # ── yay ───────────────────────────────────────────────────────────────────────
 log "installing yay..."
 if ! command -v yay &>/dev/null; then
-    rm -rf /tmp/yay
     git clone https://aur.archlinux.org/yay.git /tmp/yay
     cd /tmp/yay
     makepkg -si --noconfirm
