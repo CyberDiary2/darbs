@@ -101,7 +101,7 @@ go_install() {
     if command -v "$bin" &>/dev/null; then
         log "skipping $bin (already installed)"
     else
-        go install "$pkg" 2>/dev/null || warn "skipping $bin (go install failed)"
+        go install -v "$pkg" || warn "skipping $bin (go install failed)"
     fi
 }
 
@@ -505,6 +505,7 @@ rm -rf /tmp/gf-patterns
 # ── yay ───────────────────────────────────────────────────────────────────────
 log "installing yay..."
 if ! command -v yay &>/dev/null; then
+    rm -rf /tmp/yay
     git clone https://aur.archlinux.org/yay.git /tmp/yay
     cd /tmp/yay
     makepkg -si --noconfirm
