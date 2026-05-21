@@ -63,13 +63,67 @@ svc_start() {
     esac
 }
 
-pkg() { pacman -Qi "$1" &>/dev/null && ok "$1 already installed" && return; sudo pacman -S --noconfirm "$1" 2>/dev/null && ok "$1" || warn "$1 failed"; }
-aur() { pacman -Qi "$1" &>/dev/null && ok "$1 already installed" && return; yay -S --noconfirm "$1" 2>/dev/null && ok "$1" || warn "$1 failed (aur)"; }
+pkg() {
+    pacman -Qi "$1" &>/dev/null && ok "$1 already installed" && return
+    sudo pacman -S --noconfirm "$1" 2>/dev/null && ok "$1" || warn "$1 failed -- skipping"
+}
+aur() {
+    pacman -Qi "$1" &>/dev/null && ok "$1 already installed" && return
+    yay -S --noconfirm "$1" 2>/dev/null && ok "$1" || warn "$1 failed (aur) -- skipping"
+}
 
-# ── 1. PREREQUISITES ───────────────────────────────────────────────────────────
-info "checking prerequisites..."
+# ── 1. KEYRING + PACMAN SETUP ──────────────────────────────────────────────────
+info "initializing pacman keyring..."
 
-sudo pacman -Sy --noconfirm 2>/dev/null
+# sanity check: clock must be roughly correct or keyring will refuse to work
+NOW_YEAR="$(date +%Y)"
+if [ "$NOW_YEAR" -lt 2024 ] || [ "$NOW_YEAR" -gt 2100 ]; then
+    die "system clock looks wrong ($(date)) -- fix with: sudo date -s \"\$(curl -sI https://google.com | grep -i '^date:' | cut -d' ' -f2-)\""
+fi
+
+_keyring_ok() {
+    sudo pacman-key --list-keys 2>/dev/null | grep -q '.' || return 1
+    sudo pacman -Si artix-keyring &>/dev/null || return 1
+    return 0
+}
+
+if _keyring_ok; then
+    ok "keyring already healthy"
+    sudo pacman -Syy --noconfirm || die "pacman -Syy failed -- check mirrors/network"
+else
+    warn "keyring missing or broken -- reinitializing..."
+    sudo killall gpg-agent dirmngr gpg 2>/dev/null || true
+    sleep 1
+    sudo rm -rf /etc/pacman.d/gnupg
+
+    # haveged speeds up entropy for keyring init on laptops
+    if ! pacman -Qi haveged &>/dev/null; then
+        sudo pacman -S --noconfirm haveged 2>/dev/null || true
+    fi
+    sudo haveged -w 1024 2>/dev/null &
+    HAVEGED_PID=$!
+
+    sudo pacman-key --init      || die "pacman-key --init failed"
+    sudo pacman-key --populate artix
+    ls /usr/share/pacman/keyrings/archlinux*.gpg &>/dev/null && \
+        sudo pacman-key --populate archlinux 2>/dev/null || true
+
+    sudo pacman -Syy --noconfirm || die "pacman -Syy failed after keyring reinit"
+    kill "$HAVEGED_PID" 2>/dev/null || true
+    ok "keyring reinitialized"
+fi
+
+# fix broken pacman.conf from failed previous runs
+if grep -q 'mirrorlist-arch' /etc/pacman.conf 2>/dev/null && \
+   [ ! -f /etc/pacman.d/mirrorlist-arch ]; then
+    warn "fixing broken arch repo entries in pacman.conf..."
+    sudo sed -i '/^\[extra\]/,/^$/d' /etc/pacman.conf
+    sudo sed -i '/^\[multilib\]/,/^$/d' /etc/pacman.conf
+    sudo sed -i '/mirrorlist-arch/d' /etc/pacman.conf
+fi
+
+# ── 2. PREREQUISITES ───────────────────────────────────────────────────────────
+info "installing prerequisites..."
 
 pkg git
 pkg curl
