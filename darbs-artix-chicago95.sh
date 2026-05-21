@@ -133,18 +133,20 @@ pkg base-devel
 pkg imagemagick
 
 # enable multilib (needed for wine 32-bit)
+# must install artix-archlinux-support FIRST so mirrorlist-arch exists
+# before pacman.conf references it, otherwise pacman fails to parse the file
 if ! grep -q '^\[multilib\]' /etc/pacman.conf 2>/dev/null; then
     info "enabling multilib repo..."
+    if [ ! -f /etc/pacman.d/mirrorlist-arch ]; then
+        sudo pacman -S --noconfirm artix-archlinux-support || \
+            die "artix-archlinux-support failed -- cannot enable multilib"
+        sudo pacman-key --populate archlinux 2>/dev/null || true
+    fi
     sudo tee -a /etc/pacman.conf > /dev/null << 'EOF'
 
 [multilib]
 Include = /etc/pacman.d/mirrorlist-arch
 EOF
-    # install artix-archlinux-support if mirrorlist-arch doesn't exist
-    if [ ! -f /etc/pacman.d/mirrorlist-arch ]; then
-        sudo pacman -S --noconfirm artix-archlinux-support 2>/dev/null && \
-            sudo pacman-key --populate archlinux 2>/dev/null || true
-    fi
     sudo pacman -Sy --noconfirm
     ok "multilib enabled"
 else
