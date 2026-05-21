@@ -510,6 +510,227 @@ if $WINE_INSTALLED && [ -n "$DISPLAY" ] && command -v winetricks &>/dev/null; th
         warn "some winetricks components failed -- run winetricks manually if needed"
 fi
 
+# ── 18. ALL KALI TOOL META-PACKAGES ───────────────────────────────────────────
+info "installing all kali tool groups from kali repo..."
+
+# these are the kali meta-packages that pull in every tool in each category
+KALI_METAS=(
+    kali-tools-information-gathering
+    kali-tools-vulnerability
+    kali-tools-web
+    kali-tools-database
+    kali-tools-passwords
+    kali-tools-wireless
+    kali-tools-reverse-engineering
+    kali-tools-exploitation
+    kali-tools-sniffing-spoofing
+    kali-tools-post-exploitation
+    kali-tools-forensics
+    kali-tools-reporting
+    kali-tools-social-engineering
+    kali-tools-crypto-stego
+    kali-tools-hardware
+)
+
+for meta in "${KALI_METAS[@]}"; do
+    dpkg -l "$meta" &>/dev/null && ok "$meta already installed" && continue
+    sudo apt-get install -y -t kali-rolling "$meta" 2>/dev/null && ok "$meta" || \
+        warn "$meta failed -- some tools in this group may not be available on devuan"
+done
+
+# ── 19. KALI-STYLE WHISKER MENU ────────────────────────────────────────────────
+info "building kali-style whisker menu..."
+
+DDIR="/usr/share/desktop-directories"
+ADIR="/usr/share/applications"
+MDIR="/etc/xdg/menus/applications-merged"
+sudo mkdir -p "$DDIR" "$ADIR" "$MDIR"
+
+# helper: write a .directory file
+make_dir() {
+    local file="$1" name="$2" icon="$3"
+    sudo tee "$DDIR/$file" > /dev/null << EOF
+[Desktop Entry]
+Type=Directory
+Name=$name
+Icon=$icon
+EOF
+}
+
+# helper: write a terminal .desktop file (for cli tools without one)
+make_desktop() {
+    local id="$1" name="$2" exec="$3" cats="$4" comment="$5"
+    [ -f "$ADIR/${id}.desktop" ] && return
+    sudo tee "$ADIR/${id}.desktop" > /dev/null << EOF
+[Desktop Entry]
+Type=Application
+Name=$name
+Comment=$comment
+Exec=xfce4-terminal -T "$name" -e "bash -c '$exec; bash'"
+Icon=utilities-terminal
+Categories=$cats
+Terminal=false
+EOF
+}
+
+# ── directory entries ──────────────────────────────────────────────────────────
+make_dir "kali-tools.directory"                "Kali Tools"              "kali-menu"
+make_dir "kali-01-info.directory"              "Information Gathering"   "kali-information-gathering"
+make_dir "kali-02-vuln.directory"              "Vulnerability Analysis"  "kali-vulnerability-analysis"
+make_dir "kali-03-web.directory"               "Web Application"         "kali-web-application-analysis"
+make_dir "kali-04-db.directory"                "Database Assessment"     "kali-database-assessment"
+make_dir "kali-05-passwords.directory"         "Password Attacks"        "kali-password-attacks"
+make_dir "kali-06-wireless.directory"          "Wireless Attacks"        "kali-wireless-attacks"
+make_dir "kali-07-re.directory"                "Reverse Engineering"     "kali-reverse-engineering"
+make_dir "kali-08-exploit.directory"           "Exploitation Tools"      "kali-exploitation-tools"
+make_dir "kali-09-sniff.directory"             "Sniffing & Spoofing"     "kali-sniffing-spoofing"
+make_dir "kali-10-post.directory"              "Post Exploitation"       "kali-post-exploitation"
+make_dir "kali-11-forensics.directory"         "Forensics"               "kali-forensics"
+make_dir "kali-12-reporting.directory"         "Reporting Tools"         "kali-reporting-tools"
+make_dir "kali-13-social.directory"            "Social Engineering"      "kali-social-engineering"
+make_dir "kali-14-recon.directory"             "Recon / OSINT"           "kali-information-gathering"
+
+# ── .desktop files for tools without them (go tools, pip tools) ───────────────
+
+# information gathering
+make_desktop "darbs-subfinder"    "Subfinder"       "subfinder"              "Kali;Kali-Information-Gathering;"   "subdomain discovery"
+make_desktop "darbs-assetfinder"  "Assetfinder"     "assetfinder"            "Kali;Kali-Information-Gathering;"   "find domains and subdomains"
+make_desktop "darbs-amass"        "Amass"           "amass enum -d example.com" "Kali;Kali-Information-Gathering;" "in-depth subdomain enumeration"
+make_desktop "darbs-dnsx"         "Dnsx"            "dnsx"                   "Kali;Kali-Information-Gathering;"   "dns toolkit"
+make_desktop "darbs-httprobe"     "Httprobe"        "httprobe"               "Kali;Kali-Information-Gathering;"   "probe hosts for http/https"
+make_desktop "darbs-httpx"        "Httpx"           "httpx"                  "Kali;Kali-Information-Gathering;"   "fast http toolkit"
+make_desktop "darbs-naabu"        "Naabu"           "naabu"                  "Kali;Kali-Information-Gathering;"   "fast port scanner"
+make_desktop "darbs-shodan"       "Shodan CLI"      "shodan"                 "Kali;Kali-Information-Gathering;"   "shodan command line"
+
+# web application
+make_desktop "darbs-ffuf"         "Ffuf"            "ffuf"                   "Kali;Kali-Web-Applications;"        "fast web fuzzer"
+make_desktop "darbs-feroxbuster"  "Feroxbuster"     "feroxbuster"            "Kali;Kali-Web-Applications;"        "fast content discovery"
+make_desktop "darbs-dirsearch"    "Dirsearch"       "dirsearch"              "Kali;Kali-Web-Applications;"        "web path scanner"
+make_desktop "darbs-katana"       "Katana"          "katana"                 "Kali;Kali-Web-Applications;"        "web crawler"
+make_desktop "darbs-gospider"     "Gospider"        "gospider"               "Kali;Kali-Web-Applications;"        "fast web spider"
+make_desktop "darbs-hakrawler"    "Hakrawler"       "hakrawler"              "Kali;Kali-Web-Applications;"        "web crawler for endpoints"
+make_desktop "darbs-gau"          "Gau"             "gau"                    "Kali;Kali-Web-Applications;"        "fetch known urls"
+make_desktop "darbs-waybackurls"  "Waybackurls"     "waybackurls"            "Kali;Kali-Web-Applications;"        "fetch wayback machine urls"
+make_desktop "darbs-dalfox"       "Dalfox"          "dalfox"                 "Kali;Kali-Web-Applications;"        "xss scanner"
+make_desktop "darbs-arjun"        "Arjun"           "arjun"                  "Kali;Kali-Web-Applications;"        "http parameter discovery"
+make_desktop "darbs-qsreplace"    "Qsreplace"       "qsreplace"              "Kali;Kali-Web-Applications;"        "replace querystring values"
+make_desktop "darbs-caido"        "Caido"           "caido"                  "Kali;Kali-Web-Applications;"        "web security testing proxy"
+
+# vulnerability analysis
+make_desktop "darbs-nuclei"       "Nuclei"          "nuclei"                 "Kali;Kali-Vulnerability-Analysis;"  "vulnerability scanner"
+
+# password attacks
+make_desktop "darbs-cewl"         "CeWL"            "cewl"                   "Kali;Kali-Password-Attacks;"        "custom wordlist generator"
+make_desktop "darbs-crunch"       "Crunch"          "crunch"                 "Kali;Kali-Password-Attacks;"        "wordlist generator"
+
+# exploitation
+make_desktop "darbs-chisel"       "Chisel"          "chisel"                 "Kali;Kali-Exploitation-Tools;"      "tcp/udp tunnel over http"
+make_desktop "darbs-ligolo-proxy" "Ligolo Proxy"    "ligolo-proxy"           "Kali;Kali-Exploitation-Tools;"      "ligolo-ng proxy (attacker)"
+make_desktop "darbs-ligolo-agent" "Ligolo Agent"    "ligolo-agent"           "Kali;Kali-Exploitation-Tools;"      "ligolo-ng agent (target)"
+
+# post exploitation
+make_desktop "darbs-evil-winrm"   "Evil-WinRM"      "evil-winrm"             "Kali;Kali-Post-Exploitation;"       "winrm shell for pentesting"
+make_desktop "darbs-pwncat"       "Pwncat-cs"       "pwncat-cs"              "Kali;Kali-Post-Exploitation;"       "reverse shell handler"
+
+# recon / osint
+make_desktop "darbs-unfurl"       "Unfurl"          "unfurl"                 "Kali;Kali-Recon-OSINT;"             "extract url components"
+make_desktop "darbs-meg"          "Meg"             "meg"                    "Kali;Kali-Recon-OSINT;"             "fetch many paths for many hosts"
+make_desktop "darbs-gf"           "Gf"              "gf"                     "Kali;Kali-Recon-OSINT;"             "grep patterns for security"
+make_desktop "darbs-anew"         "Anew"            "anew"                   "Kali;Kali-Recon-OSINT;"             "add lines to file if not seen"
+make_desktop "darbs-interactsh"   "Interactsh"      "interactsh-client"      "Kali;Kali-Recon-OSINT;"             "oob interaction testing"
+
+# ── the menu file ──────────────────────────────────────────────────────────────
+sudo tee "$MDIR/kali-tools.menu" > /dev/null << 'MENUEOF'
+<!DOCTYPE Menu PUBLIC "-//freedesktop//DTD Menu 1.0//EN"
+  "http://www.freedesktop.org/standards/menu-spec/menu-1.0.dtd">
+<Menu>
+  <Name>Applications</Name>
+  <Menu>
+    <Name>Kali Tools</Name>
+    <Directory>kali-tools.directory</Directory>
+    <Menu>
+      <Name>Information Gathering</Name>
+      <Directory>kali-01-info.directory</Directory>
+      <Include><Category>Kali-Information-Gathering</Category></Include>
+    </Menu>
+    <Menu>
+      <Name>Vulnerability Analysis</Name>
+      <Directory>kali-02-vuln.directory</Directory>
+      <Include><Category>Kali-Vulnerability-Analysis</Category></Include>
+    </Menu>
+    <Menu>
+      <Name>Web Application</Name>
+      <Directory>kali-03-web.directory</Directory>
+      <Include><Category>Kali-Web-Applications</Category></Include>
+    </Menu>
+    <Menu>
+      <Name>Database Assessment</Name>
+      <Directory>kali-04-db.directory</Directory>
+      <Include><Category>Kali-Database-Assessment</Category></Include>
+    </Menu>
+    <Menu>
+      <Name>Password Attacks</Name>
+      <Directory>kali-05-passwords.directory</Directory>
+      <Include><Category>Kali-Password-Attacks</Category></Include>
+    </Menu>
+    <Menu>
+      <Name>Wireless Attacks</Name>
+      <Directory>kali-06-wireless.directory</Directory>
+      <Include><Category>Kali-Wireless-Attacks</Category></Include>
+    </Menu>
+    <Menu>
+      <Name>Reverse Engineering</Name>
+      <Directory>kali-07-re.directory</Directory>
+      <Include><Category>Kali-Reverse-Engineering</Category></Include>
+    </Menu>
+    <Menu>
+      <Name>Exploitation Tools</Name>
+      <Directory>kali-08-exploit.directory</Directory>
+      <Include><Category>Kali-Exploitation-Tools</Category></Include>
+    </Menu>
+    <Menu>
+      <Name>Sniffing &amp; Spoofing</Name>
+      <Directory>kali-09-sniff.directory</Directory>
+      <Include><Category>Kali-Sniffing-Spoofing</Category></Include>
+    </Menu>
+    <Menu>
+      <Name>Post Exploitation</Name>
+      <Directory>kali-10-post.directory</Directory>
+      <Include><Category>Kali-Post-Exploitation</Category></Include>
+    </Menu>
+    <Menu>
+      <Name>Forensics</Name>
+      <Directory>kali-11-forensics.directory</Directory>
+      <Include><Category>Kali-Forensics</Category></Include>
+    </Menu>
+    <Menu>
+      <Name>Reporting Tools</Name>
+      <Directory>kali-12-reporting.directory</Directory>
+      <Include><Category>Kali-Reporting-Tools</Category></Include>
+    </Menu>
+    <Menu>
+      <Name>Social Engineering</Name>
+      <Directory>kali-13-social.directory</Directory>
+      <Include><Category>Kali-Social-Engineering</Category></Include>
+    </Menu>
+    <Menu>
+      <Name>Recon / OSINT</Name>
+      <Directory>kali-14-recon.directory</Directory>
+      <Include><Category>Kali-Recon-OSINT</Category></Include>
+    </Menu>
+  </Menu>
+</Menu>
+MENUEOF
+ok "kali menu file written"
+
+# refresh xdg menu cache
+sudo update-menus 2>/dev/null || true
+xdg-desktop-menu forceupdate 2>/dev/null || true
+
+# tell whisker to reload
+pkill -SIGUSR1 xfce4-panel 2>/dev/null || xfce4-panel --restart 2>/dev/null || true
+ok "whisker menu updated -- log out and back in if categories don't appear"
+
 # ── DONE ───────────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${GRN}================================================${NC}"
@@ -529,6 +750,10 @@ echo "  wine notes:"
 echo "    - run 'winecfg' to configure wine settings"
 echo "    - run 'winetricks' for additional windows runtimes"
 echo "    - playonlinux provides a gui for managing wine apps"
+echo ""
+echo "  kali menu notes:"
+echo "    - log out and back in if the Kali Tools menu doesn't appear"
+echo "    - right-click whisker menu -> properties -> edit menu to verify"
 echo ""
 echo "  reload shell to pick up go tools:"
 echo "    source ~/.bashrc"
