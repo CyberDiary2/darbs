@@ -190,10 +190,14 @@ else
     ok "yay already installed"
 fi
 
-# xfce prereqs for greeter config
+# xfce prereqs -- install init-specific lightdm package so the service exists
 pkg lightdm
 pkg lightdm-gtk-greeter
 pkg xfconf
+# artix needs the init-specific service package or lightdm won't start after boot
+sudo pacman -S --noconfirm "lightdm-${INIT_SYS}" 2>/dev/null && \
+    ok "lightdm-${INIT_SYS} installed" || \
+    warn "lightdm-${INIT_SYS} not found -- lightdm may not start at boot"
 
 # ── 2. CHICAGO95 INSTALL ───────────────────────────────────────────────────────
 info "installing chicago95..."
@@ -366,20 +370,31 @@ if [ -n "$GRUB_THEME_SRC" ]; then
     sudo cp -r "$GRUB_THEME_SRC"/. /boot/grub/themes/Chicago95/
     ok "chicago95 grub theme files copied"
 
-    # patch /etc/default/grub
     GRUB_CFG=/etc/default/grub
-    sudo sed -i 's|^GRUB_THEME=.*|GRUB_THEME=/boot/grub/themes/Chicago95/theme.txt|' "$GRUB_CFG" 2>/dev/null
-    grep -q '^GRUB_THEME=' "$GRUB_CFG" || \
-        echo 'GRUB_THEME=/boot/grub/themes/Chicago95/theme.txt' | sudo tee -a "$GRUB_CFG" > /dev/null
 
-    sudo sed -i 's|^GRUB_TERMINAL_OUTPUT=.*|GRUB_TERMINAL_OUTPUT=gfxterm|' "$GRUB_CFG" 2>/dev/null
-    grep -q '^GRUB_TERMINAL_OUTPUT=' "$GRUB_CFG" || \
-        echo 'GRUB_TERMINAL_OUTPUT=gfxterm' | sudo tee -a "$GRUB_CFG" > /dev/null
+    # remove any existing conflicting theme/terminal lines first then rewrite them
+    sudo sed -i '/^GRUB_THEME=/d'           "$GRUB_CFG"
+    sudo sed -i '/^GRUB_TERMINAL_OUTPUT=/d' "$GRUB_CFG"
+    sudo sed -i '/^GRUB_GFXMODE=/d'         "$GRUB_CFG"
+    sudo sed -i '/^GRUB_GFXPAYLOAD_LINUX=/d' "$GRUB_CFG"
+    sudo sed -i 's|^GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"|' "$GRUB_CFG"
 
-    sudo sed -i 's|^GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"|' "$GRUB_CFG" 2>/dev/null
+    sudo tee -a "$GRUB_CFG" > /dev/null << 'EOF'
+GRUB_TERMINAL_OUTPUT=gfxterm
+GRUB_GFXMODE=auto
+GRUB_GFXPAYLOAD_LINUX=keep
+GRUB_THEME=/boot/grub/themes/Chicago95/theme.txt
+EOF
+    ok "/etc/default/grub updated"
 
-    sudo grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null && \
-        ok "grub config updated" || warn "grub-mkconfig failed -- run manually: sudo grub-mkconfig -o /boot/grub/grub.cfg"
+    # verify the theme file actually landed
+    if sudo test -f /boot/grub/themes/Chicago95/theme.txt; then
+        sudo grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null && \
+            ok "grub.cfg regenerated -- chicago95 theme will show on next boot" || \
+            warn "grub-mkconfig failed -- run: sudo grub-mkconfig -o /boot/grub/grub.cfg"
+    else
+        warn "theme.txt missing from /boot/grub/themes/Chicago95/ -- grub-mkconfig skipped"
+    fi
 else
     skip "chicago95 grub theme" "theme.txt not found in repo clone"
 fi
@@ -439,7 +454,8 @@ EOF
 fi
 
 svc_enable lightdm
-ok "lightdm chicago95 greeter configured"
+svc_start lightdm 2>/dev/null || true
+ok "lightdm chicago95 greeter configured and enabled at boot"
 
 # ── 8. SYSTEM SOUNDS ───────────────────────────────────────────────────────────
 info "installing chicago95 system sounds..."
@@ -487,21 +503,8 @@ aur winetricks
 aur playonlinux
 
 ok "wine packages installed"
-
-# initialize wineprefix if in a desktop session
-if [ -n "$DISPLAY" ]; then
-    WINEDEBUG=-all WINEPREFIX="$HOME/.wine" wineboot --init 2>/dev/null && \
-        ok "wineprefix initialized at ~/.wine" || \
-        warn "wineprefix init failed -- run 'winecfg' after login"
-
-    # install common runtimes silently
-    info "installing wine runtimes (vcrun2019, d3dx9, corefonts)..."
-    WINEDEBUG=-all winetricks -q vcrun2019 d3dx9 corefonts 2>/dev/null && \
-        ok "wine runtimes installed" || \
-        warn "some runtimes failed -- run winetricks manually if needed"
-else
-    warn "no display -- run 'winecfg' after first login to initialize wine"
-fi
+# wine will auto-initialize ~/.wine on first use
+# run 'winecfg' or 'winetricks' manually after install to set up runtimes
 
 # ── 10. CLEANUP ────────────────────────────────────────────────────────────────
 rm -rf "$C95_TMP"
