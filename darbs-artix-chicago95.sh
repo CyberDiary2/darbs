@@ -1,0 +1,421 @@
+#!/bin/bash
+# darbs-artix-chicago95.sh -- fully chicago95-ify an artix xfce laptop
+# installs chicago95 theme, icons, cursors, sounds, grub theme, lightdm login,
+# wine, and winetricks. works on openrc, runit, s6, and dinit.
+# run as your regular user (not root). script will sudo when needed.
+# usage: bash darbs-artix-chicago95.sh
+
+GRN='\033[0;32m'; YLW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
+info() { echo -e "\n${GRN}==>${NC} $1"; }
+ok()   { echo -e "  ${GRN}[OK]${NC}   $1"; }
+skip() { echo -e "  ${YLW}[SKIP]${NC} $1 -- $2"; }
+warn() { echo -e "  ${YLW}[!]${NC}   $1"; }
+die()  { echo -e "${RED}[x]${NC} $1"; exit 1; }
+
+[ "$EUID" -eq 0 ] && die "run as your regular user, not root."
+command -v pacman &>/dev/null || die "pacman not found -- this script is for artix linux only."
+
+LOGFILE="$HOME/darbs-chicago95.log"
+exec > >(tee -a "$LOGFILE") 2>&1
+
+echo -e "${GRN}"
+echo "  ██████╗██╗  ██╗██╗ ██████╗ █████╗  ██████╗  ██████╗  █████╗  ███████╗"
+echo "  ██╔════╝██║  ██║██║██╔════╝██╔══██╗██╔════╝ ██╔═══██╗██╔══██╗ ██╔════╝"
+echo "  ██║     ███████║██║██║     ███████║██║  ███╗██║   ██║╚██████╔╝ ███████╗"
+echo "  ██║     ██╔══██║██║██║     ██╔══██║██║   ██║██║   ██║ ╚═══██╗  ╚════██║"
+echo "  ╚██████╗██║  ██║██║╚██████╗██║  ██║╚██████╔╝╚██████╔╝ █████╔╝  ███████║"
+echo "   ╚═════╝╚═╝  ╚═╝╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝  ╚═════╝  ╚════╝   ╚══════╝"
+echo -e "${NC}"
+echo "  darbs artix chicago95 -- full win95 theme for artix xfce"
+echo ""
+
+# ── detect init system ─────────────────────────────────────────────────────────
+INIT_SYS=""
+if   command -v openrc  &>/dev/null || [ -d /run/openrc ];  then INIT_SYS="openrc"
+elif command -v runit   &>/dev/null || [ -d /run/runit ];   then INIT_SYS="runit"
+elif command -v s6-rc   &>/dev/null || [ -d /run/s6 ];      then INIT_SYS="s6"
+elif command -v dinitctl &>/dev/null;                        then INIT_SYS="dinit"
+else
+    case "$(cat /proc/1/comm 2>/dev/null)" in
+        openrc-init) INIT_SYS="openrc" ;;
+        runit)       INIT_SYS="runit"  ;;
+        s6-svscan)   INIT_SYS="s6"     ;;
+        dinit)       INIT_SYS="dinit"  ;;
+        *)           INIT_SYS="openrc" ; warn "could not detect init system, defaulting to openrc" ;;
+    esac
+fi
+ok "init system: $INIT_SYS"
+
+svc_enable() {
+    case "$INIT_SYS" in
+        openrc) sudo rc-update add "$1" default 2>/dev/null || true ;;
+        runit)  [ -d "/etc/runit/sv/$1" ] && sudo ln -sf "/etc/runit/sv/$1" /run/runit/service/ 2>/dev/null || true ;;
+        s6)     sudo s6-rc -u change "$1" 2>/dev/null || true ;;
+        dinit)  sudo dinitctl enable "$1" 2>/dev/null || true ;;
+    esac
+}
+svc_start() {
+    case "$INIT_SYS" in
+        openrc) sudo rc-service "$1" start 2>/dev/null || true ;;
+        runit)  sudo sv start "$1" 2>/dev/null || true ;;
+        s6)     sudo s6-rc -u change "$1" 2>/dev/null || true ;;
+        dinit)  sudo dinitctl start "$1" 2>/dev/null || true ;;
+    esac
+}
+
+pkg() { pacman -Qi "$1" &>/dev/null && ok "$1 already installed" && return; sudo pacman -S --noconfirm "$1" 2>/dev/null && ok "$1" || warn "$1 failed"; }
+aur() { pacman -Qi "$1" &>/dev/null && ok "$1 already installed" && return; yay -S --noconfirm "$1" 2>/dev/null && ok "$1" || warn "$1 failed (aur)"; }
+
+# ── 1. PREREQUISITES ───────────────────────────────────────────────────────────
+info "checking prerequisites..."
+
+sudo pacman -Sy --noconfirm 2>/dev/null
+
+pkg git
+pkg curl
+pkg wget
+pkg unzip
+pkg base-devel
+pkg imagemagick
+
+# enable multilib (needed for wine 32-bit)
+if ! grep -q '^\[multilib\]' /etc/pacman.conf 2>/dev/null; then
+    info "enabling multilib repo..."
+    sudo tee -a /etc/pacman.conf > /dev/null << 'EOF'
+
+[multilib]
+Include = /etc/pacman.d/mirrorlist-arch
+EOF
+    # install artix-archlinux-support if mirrorlist-arch doesn't exist
+    if [ ! -f /etc/pacman.d/mirrorlist-arch ]; then
+        sudo pacman -S --noconfirm artix-archlinux-support 2>/dev/null && \
+            sudo pacman-key --populate archlinux 2>/dev/null || true
+    fi
+    sudo pacman -Sy --noconfirm
+    ok "multilib enabled"
+else
+    ok "multilib already enabled"
+fi
+
+# install yay if missing
+if ! command -v yay &>/dev/null; then
+    info "installing yay (aur helper)..."
+    rm -rf /tmp/yay-build
+    git clone https://aur.archlinux.org/yay.git /tmp/yay-build
+    (cd /tmp/yay-build && makepkg -si --noconfirm)
+    rm -rf /tmp/yay-build
+    ok "yay installed"
+else
+    ok "yay already installed"
+fi
+
+# xfce prereqs for greeter config
+pkg lightdm
+pkg lightdm-gtk-greeter
+pkg xfconf
+
+# ── 2. CHICAGO95 FROM AUR ──────────────────────────────────────────────────────
+info "installing chicago95 from aur..."
+aur chicago95-theme-git
+
+# aur package installs to /usr/share/themes/Chicago95, /usr/share/icons/Chicago95, etc.
+# clone the repo separately anyway so we can grab the GRUB theme and any extras
+C95_TMP="/tmp/chicago95-src"
+rm -rf "$C95_TMP"
+if git clone --depth=1 https://github.com/grassmunk/Chicago95 "$C95_TMP" 2>/dev/null; then
+    ok "chicago95 repo cloned for grub/extra assets"
+else
+    warn "git clone failed -- grub theme section will be skipped"
+fi
+
+# ── 3. GTK THEME + ICONS ───────────────────────────────────────────────────────
+info "applying chicago95 gtk theme and icons..."
+
+# copy themes and icons to user dirs as backup (aur package covers system dirs)
+mkdir -p "$HOME/.themes" "$HOME/.icons"
+for d in "$C95_TMP/Theme"/Chicago95* 2>/dev/null; do
+    [ -d "$d" ] && cp -r "$d" "$HOME/.themes/" 2>/dev/null || true
+done
+for d in "$C95_TMP/icons"/Chicago95* 2>/dev/null; do
+    [ -d "$d" ] && cp -r "$d" "$HOME/.icons/" 2>/dev/null || true
+done
+
+# fonts
+if [ -d "$C95_TMP/fonts" ]; then
+    sudo mkdir -p /usr/share/fonts/chicago95
+    find "$C95_TMP/fonts" \( -name "*.ttf" -o -name "*.otf" -o -name "*.pcf*" \) \
+        -exec sudo cp {} /usr/share/fonts/chicago95/ \; 2>/dev/null || true
+    sudo fc-cache -f 2>/dev/null && ok "chicago95 fonts installed"
+fi
+
+# write gtk2 settings
+cat > "$HOME/.gtkrc-2.0" << 'EOF'
+gtk-theme-name="Chicago95"
+gtk-icon-theme-name="Chicago95"
+gtk-font-name="Liberation Sans 10"
+gtk-cursor-theme-name="Chicago95-cursor-black"
+gtk-xft-antialias=0
+gtk-xft-hinting=0
+EOF
+
+# write gtk3 settings
+mkdir -p "$HOME/.config/gtk-3.0"
+cat > "$HOME/.config/gtk-3.0/settings.ini" << 'EOF'
+[Settings]
+gtk-theme-name=Chicago95
+gtk-icon-theme-name=Chicago95
+gtk-font-name=Liberation Sans 10
+gtk-cursor-theme-name=Chicago95-cursor-black
+gtk-xft-antialias=0
+gtk-xft-hinting=0
+EOF
+
+ok "gtk2 and gtk3 settings written"
+
+# ── 4. XFCE SETTINGS ───────────────────────────────────────────────────────────
+info "applying chicago95 to xfce..."
+
+XFCONF_DIR="$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
+mkdir -p "$XFCONF_DIR"
+
+# xsettings channel (gtk theme, icons, fonts, cursor)
+cat > "$XFCONF_DIR/xsettings.xml" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xsettings" version="1.0">
+  <property name="Net" type="empty">
+    <property name="ThemeName"     type="string" value="Chicago95"/>
+    <property name="IconThemeName" type="string" value="Chicago95"/>
+  </property>
+  <property name="Gtk" type="empty">
+    <property name="FontName"          type="string" value="Liberation Sans 10"/>
+    <property name="MonospaceFontName" type="string" value="Liberation Mono 10"/>
+    <property name="CursorThemeName"   type="string" value="Chicago95-cursor-black"/>
+    <property name="CursorThemeSize"   type="int"    value="0"/>
+    <property name="DecorationLayout"  type="string" value="menu:minimize,maximize,close"/>
+  </property>
+  <property name="Xft" type="empty">
+    <property name="Antialias" type="int"    value="0"/>
+    <property name="Hinting"   type="int"    value="0"/>
+    <property name="HintStyle" type="string" value="hintnone"/>
+    <property name="RGBA"      type="string" value="none"/>
+  </property>
+</channel>
+EOF
+
+# xfwm4 channel (window manager theme, buttons)
+cat > "$XFCONF_DIR/xfwm4.xml" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfwm4" version="1.0">
+  <property name="general" type="empty">
+    <property name="theme"          type="string" value="Chicago95"/>
+    <property name="title_font"     type="string" value="Liberation Sans Bold 8"/>
+    <property name="title_alignment" type="string" value="left"/>
+    <property name="button_layout"  type="string" value="menu|minimize,maximize,close"/>
+    <property name="use_compositing" type="bool"  value="false"/>
+    <property name="snap_to_border" type="bool"   value="true"/>
+  </property>
+</channel>
+EOF
+
+# apply live if in a desktop session
+if command -v xfconf-query &>/dev/null && [ -n "$DISPLAY" ]; then
+    xfconf-query -c xsettings -p /Net/ThemeName          -s "Chicago95"               2>/dev/null || true
+    xfconf-query -c xsettings -p /Net/IconThemeName       -s "Chicago95"               2>/dev/null || true
+    xfconf-query -c xsettings -p /Gtk/FontName            -s "Liberation Sans 10"      2>/dev/null || true
+    xfconf-query -c xsettings -p /Gtk/CursorThemeName     -s "Chicago95-cursor-black"  2>/dev/null || true
+    xfconf-query -c xsettings -p /Xft/Antialias           -s 0                         2>/dev/null || true
+    xfconf-query -c xsettings -p /Xft/Hinting             -s 0                         2>/dev/null || true
+    xfconf-query -c xfwm4     -p /general/theme           -s "Chicago95"               2>/dev/null || true
+    xfconf-query -c xfwm4     -p /general/title_font      -s "Liberation Sans Bold 8"  2>/dev/null || true
+    xfconf-query -c xfwm4     -p /general/button_layout   -s "menu|minimize,maximize,close" 2>/dev/null || true
+    xfconf-query -c xfwm4     -p /general/use_compositing -s false                     2>/dev/null || true
+    ok "xfce settings applied live"
+fi
+
+# ── 5. PANEL (win95 taskbar style) ─────────────────────────────────────────────
+info "configuring xfce panel for win95 taskbar look..."
+
+if command -v xfconf-query &>/dev/null && [ -n "$DISPLAY" ]; then
+    # panel at bottom, small, no transparency
+    xfconf-query -c xfce4-panel -p /panels/panel-1/position      -s "p=8;x=0;y=0"  2>/dev/null || true
+    xfconf-query -c xfce4-panel -p /panels/panel-1/size          -s 28              2>/dev/null || true
+    xfconf-query -c xfce4-panel -p /panels/panel-1/background-style -s 0            2>/dev/null || true
+    ok "panel positioned at bottom (win95 taskbar)"
+fi
+
+# ── 6. GRUB THEME ──────────────────────────────────────────────────────────────
+info "installing chicago95 grub theme..."
+
+GRUB_THEME_SRC=$(find "$C95_TMP/GRUB" -maxdepth 2 -name "theme.txt" 2>/dev/null | head -1 | xargs -I{} dirname {} 2>/dev/null)
+
+if [ -n "$GRUB_THEME_SRC" ]; then
+    sudo mkdir -p /boot/grub/themes/Chicago95
+    sudo cp -r "$GRUB_THEME_SRC"/. /boot/grub/themes/Chicago95/
+    ok "chicago95 grub theme files copied"
+
+    # patch /etc/default/grub
+    GRUB_CFG=/etc/default/grub
+    sudo sed -i 's|^GRUB_THEME=.*|GRUB_THEME=/boot/grub/themes/Chicago95/theme.txt|' "$GRUB_CFG" 2>/dev/null
+    grep -q '^GRUB_THEME=' "$GRUB_CFG" || \
+        echo 'GRUB_THEME=/boot/grub/themes/Chicago95/theme.txt' | sudo tee -a "$GRUB_CFG" > /dev/null
+
+    sudo sed -i 's|^GRUB_TERMINAL_OUTPUT=.*|GRUB_TERMINAL_OUTPUT=gfxterm|' "$GRUB_CFG" 2>/dev/null
+    grep -q '^GRUB_TERMINAL_OUTPUT=' "$GRUB_CFG" || \
+        echo 'GRUB_TERMINAL_OUTPUT=gfxterm' | sudo tee -a "$GRUB_CFG" > /dev/null
+
+    sudo sed -i 's|^GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"|' "$GRUB_CFG" 2>/dev/null
+
+    sudo grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null && \
+        ok "grub config updated" || warn "grub-mkconfig failed -- run manually: sudo grub-mkconfig -o /boot/grub/grub.cfg"
+else
+    skip "chicago95 grub theme" "theme.txt not found in repo clone"
+fi
+
+# ── 7. LIGHTDM LOGIN SCREEN ────────────────────────────────────────────────────
+info "configuring lightdm login screen with chicago95..."
+
+# copy theme to /usr/share so lightdm (root) can read it
+if [ -d "/usr/share/themes/Chicago95" ]; then
+    ok "chicago95 theme already in /usr/share/themes"
+elif [ -d "$HOME/.themes/Chicago95" ]; then
+    sudo cp -r "$HOME/.themes/Chicago95" /usr/share/themes/
+    ok "chicago95 copied to /usr/share/themes"
+fi
+if [ -d "/usr/share/icons/Chicago95" ]; then
+    ok "chicago95 icons already in /usr/share/icons"
+elif [ -d "$HOME/.icons/Chicago95" ]; then
+    sudo cp -r "$HOME/.icons/Chicago95" /usr/share/icons/
+    ok "chicago95 icons copied to /usr/share/icons"
+fi
+
+# find a chicago95 wallpaper for the login screen
+C95_WALL=$(find "$C95_TMP" \( -name "*.png" -o -name "*.jpg" \) 2>/dev/null | grep -i "wallpaper\|background\|desktop" | head -1)
+[ -z "$C95_WALL" ] && C95_WALL=$(find "$C95_TMP" -name "*.png" 2>/dev/null | head -1)
+if [ -n "$C95_WALL" ]; then
+    sudo mkdir -p /usr/share/backgrounds/chicago95
+    sudo cp "$C95_WALL" /usr/share/backgrounds/chicago95/login.png
+    BG_LINE="background=/usr/share/backgrounds/chicago95/login.png"
+else
+    BG_LINE=""
+fi
+
+sudo mkdir -p /etc/lightdm
+sudo tee /etc/lightdm/lightdm-gtk-greeter.conf > /dev/null << EOF
+[greeter]
+theme-name=Chicago95
+icon-theme-name=Chicago95
+font-name=Liberation Sans 10
+${BG_LINE}
+xft-antialias=false
+xft-hinting=false
+indicators=~clock;~spacer;~session;~power
+clock-format=%A, %B %d    %H:%M
+position=50%,center 50%,center
+panel-position=bottom
+EOF
+
+# ensure lightdm uses gtk greeter
+sudo mkdir -p /etc/lightdm
+if [ -f /etc/lightdm/lightdm.conf ]; then
+    sudo sed -i 's/^#\?greeter-session=.*/greeter-session=lightdm-gtk-greeter/' /etc/lightdm/lightdm.conf
+else
+    sudo tee /etc/lightdm/lightdm.conf > /dev/null << 'EOF'
+[Seat:*]
+greeter-session=lightdm-gtk-greeter
+EOF
+fi
+
+svc_enable lightdm
+ok "lightdm chicago95 greeter configured"
+
+# ── 8. SYSTEM SOUNDS ───────────────────────────────────────────────────────────
+info "installing chicago95 system sounds..."
+
+SOUNDS_SRC=$(find "$C95_TMP" -maxdepth 2 -type d -name "sounds" 2>/dev/null | head -1)
+if [ -n "$SOUNDS_SRC" ]; then
+    sudo mkdir -p /usr/share/sounds/Chicago95/stereo
+    find "$SOUNDS_SRC" \( -name "*.ogg" -o -name "*.wav" \) 2>/dev/null \
+        | xargs -I{} sudo cp {} /usr/share/sounds/Chicago95/stereo/ 2>/dev/null || true
+
+    sudo tee /usr/share/sounds/Chicago95/index.theme > /dev/null << 'EOF'
+[Sound Theme]
+Name=Chicago95
+Comment=Windows 95 style sound theme
+Directories=stereo
+
+[stereo]
+OutputProfile=stereo
+EOF
+    ok "chicago95 sounds installed to /usr/share/sounds/Chicago95/"
+    info "enable in xfce: settings manager -> sound -> sound theme -> Chicago95"
+else
+    # try the aur package location
+    if [ -d /usr/share/sounds/Chicago95 ]; then
+        ok "chicago95 sounds already at /usr/share/sounds/Chicago95 (from aur package)"
+    else
+        skip "chicago95 sounds" "sounds directory not found"
+    fi
+fi
+
+# ── 9. WINE + WINETRICKS ───────────────────────────────────────────────────────
+info "installing wine and winetricks..."
+
+pkg wine
+pkg wine-mono
+pkg wine-gecko
+pkg lib32-alsa-plugins
+pkg lib32-libpulse
+pkg lib32-openal
+
+# winetricks from aur
+aur winetricks
+
+# playonlinux from aur
+aur playonlinux
+
+ok "wine packages installed"
+
+# initialize wineprefix if in a desktop session
+if [ -n "$DISPLAY" ]; then
+    WINEDEBUG=-all WINEPREFIX="$HOME/.wine" wineboot --init 2>/dev/null && \
+        ok "wineprefix initialized at ~/.wine" || \
+        warn "wineprefix init failed -- run 'winecfg' after login"
+
+    # install common runtimes silently
+    info "installing wine runtimes (vcrun2019, d3dx9, corefonts)..."
+    WINEDEBUG=-all winetricks -q vcrun2019 d3dx9 corefonts 2>/dev/null && \
+        ok "wine runtimes installed" || \
+        warn "some runtimes failed -- run winetricks manually if needed"
+else
+    warn "no display -- run 'winecfg' after first login to initialize wine"
+fi
+
+# ── 10. CLEANUP ────────────────────────────────────────────────────────────────
+rm -rf "$C95_TMP"
+
+# reload panel if in session
+pkill -SIGUSR1 xfce4-panel 2>/dev/null || xfce4-panel --restart 2>/dev/null || true
+
+# ── DONE ───────────────────────────────────────────────────────────────────────
+echo ""
+echo -e "${GRN}================================================${NC}"
+echo -e "${GRN}  darbs artix chicago95 -- done${NC}"
+echo -e "${GRN}================================================${NC}"
+echo ""
+echo "  reboot to see:"
+echo "    - chicago95 grub theme at boot"
+echo "    - chicago95 lightdm login screen"
+echo ""
+echo "  after reboot, finish in xfce:"
+echo "    - settings manager -> appearance -> Chicago95"
+echo "    - settings manager -> window manager -> Chicago95"
+echo "    - settings manager -> sound -> sound theme -> Chicago95"
+echo "    - right-click desktop -> desktop settings -> icons -> Chicago95"
+echo ""
+echo "  wine:"
+echo "    - run 'winecfg' to configure wine"
+echo "    - run 'winetricks' for more windows runtimes"
+echo "    - use playonlinux for a gui wine manager"
+echo ""
+echo "  full log: $LOGFILE"
+echo ""
