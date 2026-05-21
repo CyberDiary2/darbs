@@ -81,6 +81,31 @@ if [ "$NOW_YEAR" -lt 2024 ] || [ "$NOW_YEAR" -gt 2100 ]; then
     die "system clock looks wrong ($(date)) -- fix with: sudo date -s \"\$(curl -sI https://google.com | grep -i '^date:' | cut -d' ' -f2-)\""
 fi
 
+# ensure mirrorlist exists -- write fallback mirrors if missing
+sudo mkdir -p /etc/pacman.d
+if [ ! -f /etc/pacman.d/mirrorlist ] || [ ! -s /etc/pacman.d/mirrorlist ]; then
+    warn "artix mirrorlist missing -- writing fallback mirrors..."
+    sudo tee /etc/pacman.d/mirrorlist > /dev/null << 'EOF'
+Server = https://mirrors.dotsrc.org/artix-linux/repos/$repo/os/$arch
+Server = https://mirror1.artixlinux.org/$repo/os/$arch
+Server = https://mirror.pascalpuffke.de/artix-linux/$repo/os/$arch
+Server = https://artix.nze.cz/$repo/os/$arch
+Server = https://artixlinux.mirror.liquidtelecom.com/$repo/os/$arch
+EOF
+    ok "artix mirrorlist written"
+fi
+
+if [ ! -f /etc/pacman.d/mirrorlist-arch ] || [ ! -s /etc/pacman.d/mirrorlist-arch ]; then
+    warn "arch mirrorlist missing -- writing fallback mirrors..."
+    sudo tee /etc/pacman.d/mirrorlist-arch > /dev/null << 'EOF'
+Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch
+Server = https://mirrors.kernel.org/archlinux/$repo/os/$arch
+Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch
+Server = https://mirror.leaseweb.net/archlinux/$repo/os/$arch
+EOF
+    ok "arch mirrorlist written"
+fi
+
 _keyring_ok() {
     sudo pacman-key --list-keys 2>/dev/null | grep -q '.' || return 1
     sudo pacman -Si artix-keyring &>/dev/null || return 1
