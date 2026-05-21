@@ -195,26 +195,58 @@ pkg lightdm
 pkg lightdm-gtk-greeter
 pkg xfconf
 
-# ── 2. CHICAGO95 FROM AUR ──────────────────────────────────────────────────────
-info "installing chicago95 from aur..."
-aur chicago95-theme-git
+# ── 2. CHICAGO95 INSTALL ───────────────────────────────────────────────────────
+info "installing chicago95..."
 
-# aur package installs to /usr/share/themes/Chicago95, /usr/share/icons/Chicago95, etc.
-# clone the repo separately anyway so we can grab the GRUB theme and any extras
+# always clone the repo -- used for grub theme, sounds, and as fallback if AUR fails
 C95_TMP="/tmp/chicago95-src"
 rm -rf "$C95_TMP"
 if git clone --depth=1 https://github.com/grassmunk/Chicago95 "$C95_TMP" 2>/dev/null; then
-    ok "chicago95 repo cloned for grub/extra assets"
+    ok "chicago95 repo cloned"
 else
-    warn "git clone failed -- grub theme section will be skipped"
+    die "could not clone chicago95 repo -- check internet connection"
+fi
+
+# try AUR first, fall back to manual install from the cloned repo
+if pacman -Qi chicago95-theme-git &>/dev/null; then
+    ok "chicago95-theme-git already installed"
+elif yay -S --noconfirm chicago95-theme-git 2>/dev/null; then
+    ok "chicago95-theme-git installed via aur"
+else
+    warn "aur install failed -- installing chicago95 manually from repo clone..."
+
+    # gtk themes
+    sudo mkdir -p /usr/share/themes
+    for d in "$C95_TMP/Theme"/Chicago95*; do
+        [ -d "$d" ] && sudo cp -r "$d" /usr/share/themes/ && ok "theme: $(basename "$d")"
+    done
+
+    # icons and cursors
+    sudo mkdir -p /usr/share/icons
+    for d in "$C95_TMP/icons"/Chicago95*; do
+        [ -d "$d" ] && sudo cp -r "$d" /usr/share/icons/ && ok "icons: $(basename "$d")"
+    done
+
+    # fonts
+    sudo mkdir -p /usr/share/fonts/chicago95
+    find "$C95_TMP/fonts" \( -name "*.ttf" -o -name "*.otf" -o -name "*.pcf*" \) \
+        -exec sudo cp {} /usr/share/fonts/chicago95/ \; 2>/dev/null || true
+    sudo fc-cache -f 2>/dev/null
+
+    # sounds
+    sudo mkdir -p /usr/share/sounds/Chicago95/stereo
+    find "$C95_TMP" -maxdepth 3 \( -name "*.ogg" -o -name "*.wav" \) \
+        -exec sudo cp {} /usr/share/sounds/Chicago95/stereo/ \; 2>/dev/null || true
+
+    ok "chicago95 installed manually from github"
 fi
 
 # ── 3. GTK THEME + ICONS ───────────────────────────────────────────────────────
 info "applying chicago95 gtk theme and icons..."
 
-# copy themes and icons to user dirs as backup (aur package covers system dirs)
+# copy to user dirs as well so xfce picks them up without a relogin
 mkdir -p "$HOME/.themes" "$HOME/.icons"
-for d in "$C95_TMP/Theme"/Chicago95* 2>/dev/null; do
+for d in "$C95_TMP/Theme"/Chicago95*; do
     [ -d "$d" ] && cp -r "$d" "$HOME/.themes/" 2>/dev/null || true
 done
 for d in "$C95_TMP/icons"/Chicago95* 2>/dev/null; do
