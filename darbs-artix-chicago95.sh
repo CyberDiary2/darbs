@@ -249,7 +249,7 @@ mkdir -p "$HOME/.themes" "$HOME/.icons"
 for d in "$C95_TMP/Theme"/Chicago95*; do
     [ -d "$d" ] && cp -r "$d" "$HOME/.themes/" 2>/dev/null || true
 done
-for d in "$C95_TMP/icons"/Chicago95* 2>/dev/null; do
+for d in "$C95_TMP/icons"/Chicago95*; do
     [ -d "$d" ] && cp -r "$d" "$HOME/.icons/" 2>/dev/null || true
 done
 
