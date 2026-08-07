@@ -34,6 +34,10 @@ RESET="\e[0m"
 
 log() { echo -e "${GREEN}==>${RESET} $1"; }
 
+# Robust: try the batch, and on failure (usually one package absent on this
+# Debian release) retry each individually so the run never aborts. Misses are
+# logged to ~/darbs-failed.log.
+FAILLOG="${FAILLOG:-$HOME/darbs-failed.log}"
 apt_install() {
     local to_install=()
     for pkg in "$@"; do
@@ -43,9 +47,17 @@ apt_install() {
             to_install+=("$pkg")
         fi
     done
-    if [ ${#to_install[@]} -gt 0 ]; then
-        sudo apt install -y "${to_install[@]}"
+    [ ${#to_install[@]} -eq 0 ] && return 0
+    if sudo apt-get install -y "${to_install[@]}" 2>/dev/null; then
+        return 0
     fi
+    log "batch apt install failed, retrying one by one..."
+    for pkg in "${to_install[@]}"; do
+        if ! sudo apt-get install -y "$pkg" 2>/dev/null; then
+            echo "apt: $pkg" >> "$FAILLOG"
+            log "WARNING: could not install $pkg (logged to $FAILLOG)"
+        fi
+    done
 }
 
 snap_install() {
@@ -299,6 +311,11 @@ fi
 mkdir -p "$HOME/.config/picom"
 if [ -f "$DOT_DIR/picom/picom.conf" ]; then
     cp "$DOT_DIR/picom/picom.conf" "$HOME/.config/picom/picom.conf"
+fi
+
+mkdir -p "$HOME/.config/conky"
+if [ -f "$DOT_DIR/conky/conky.conf" ]; then
+    cp "$DOT_DIR/conky/conky.conf" "$HOME/.config/conky/conky.conf"
 fi
 
 mkdir -p "$HOME/.config/rofi"
