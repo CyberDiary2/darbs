@@ -313,10 +313,115 @@ if [ -f "$DOT_DIR/picom/picom.conf" ]; then
     cp "$DOT_DIR/picom/picom.conf" "$HOME/.config/picom/picom.conf"
 fi
 
+# -----------------------------
+# CONKY (desktop system monitor, laptop-tuned)
+# -----------------------------
+log "Setting up conky desktop monitor..."
 mkdir -p "$HOME/.config/conky"
-if [ -f "$DOT_DIR/conky/conky.conf" ]; then
-    cp "$DOT_DIR/conky/conky.conf" "$HOME/.config/conky/conky.conf"
-fi
+cat > "$HOME/.config/conky/conky.conf" <<'CONKYEOF'
+conky.config = {
+    -- display
+    alignment = 'top_right',
+    gap_x = 20,
+    gap_y = 40,
+
+    -- window
+    own_window = true,
+    own_window_type = 'desktop',
+    own_window_transparent = false,
+    own_window_argb_visual = true,
+    own_window_argb_value = 120,
+    own_window_colour = '000000',
+    own_window_hints = 'undecorated,below,sticky,skip_taskbar,skip_pager',
+
+    -- appearance
+    background = false,
+    double_buffer = true,
+    draw_shades = false,
+    draw_outline = false,
+    draw_borders = false,
+
+    -- fonts
+    use_xft = true,
+    font = 'JetBrains Mono:size=12',
+    xftalpha = 0.9,
+
+    -- colors
+    default_color = 'white',
+    color1 = '88ccff',  -- label color (light blue)
+    color2 = 'ffaa44',  -- warning color (orange)
+
+    -- update
+    update_interval = 2,
+    cpu_avg_samples = 2,
+    net_avg_samples = 2,
+
+    -- misc
+    no_buffers = true,
+    uppercase = false,
+    use_spacer = 'none',
+    show_graph_scale = false,
+    out_to_console = false,
+    out_to_stderr = false,
+};
+
+conky.text = [[
+${color1}${time %A, %B %e}${alignr}${color}${time %I:%M %p}
+${color1}uptime:${color} ${uptime}
+${hr 1}
+${color1}CPU  ${color}${execi 3600 sed -n 's/^model name.*: //p' /proc/cpuinfo | head -1 | cut -c1-30}
+usage:  ${cpu cpu0}%${alignr}temp: ${execi 5 sensors 2>/dev/null | grep -im1 -E 'Package id 0:|Tctl:|Tdie:' | grep -oE '[+][0-9]+' | head -1 | tr -d '+' | awk '{if($1!="")printf "%.0fF",$1*9/5+32}'}
+${cpubar cpu0 8,260}
+cores:  ${execi 3600 nproc}${alignr}load: ${loadavg 1}
+${hr 1}
+${color1}MEMORY
+ram:    ${mem} / ${memmax}${alignr}${memperc}%
+${membar 8,260}
+swap:   ${swap} / ${swapmax}${alignr}${swapperc}%
+${swapbar 8,260}
+${hr 1}
+${color1}BATTERY  ${color}${battery_short __BAT__}${alignr}${battery_time __BAT__}
+${battery_bar 8,260 __BAT__}
+${hr 1}
+${color1}STORAGE
+disk:   ${fs_used /} / ${fs_size /}${alignr}${fs_used_perc /}%
+${fs_bar 8,260 /}
+${hr 1}
+${color1}NETWORK  ${color}__IFACE__${alignr}${wireless_essid __IFACE__}
+up:     ${upspeed __IFACE__}${alignr}down: ${downspeed __IFACE__}
+signal: ${wireless_link_qual_perc __IFACE__}%
+${hr 1}
+${color1}TOP PROCESSES
+${color1}name              cpu%   ram%
+${color}${top name 1} ${top cpu 1}   ${top mem 1}
+${top name 2} ${top cpu 2}   ${top mem 2}
+${top name 3} ${top cpu 3}   ${top mem 3}
+${top name 4} ${top cpu 4}   ${top mem 4}
+${top name 5} ${top cpu 5}   ${top mem 5}
+]];
+CONKYEOF
+
+# fill in the laptop's WiFi/primary interface and battery name
+IFACE="$(ip route show default 2>/dev/null | awk '/default/{print $5; exit}')"
+[ -z "$IFACE" ] && IFACE="$(ls /sys/class/net 2>/dev/null | grep -m1 -E '^wl')"
+[ -z "$IFACE" ] && IFACE="$(ls /sys/class/net 2>/dev/null | grep -m1 -E '^en|^eth')"
+[ -z "$IFACE" ] && IFACE="wlan0"
+BAT="$(ls /sys/class/power_supply 2>/dev/null | grep -m1 -E '^BAT')"
+[ -z "$BAT" ] && BAT="BAT0"
+sed -i "s|__IFACE__|$IFACE|g; s|__BAT__|$BAT|g" "$HOME/.config/conky/conky.conf"
+log "conky configured (interface: $IFACE, battery: $BAT)"
+
+# autostart conky under XFCE (pause lets the desktop settle first)
+mkdir -p "$HOME/.config/autostart"
+cat > "$HOME/.config/autostart/conky.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Conky
+Comment=Desktop system monitor (darbs)
+Exec=conky --daemonize --pause=3 --config=$HOME/.config/conky/conky.conf
+Terminal=false
+X-GNOME-Autostart-enabled=true
+EOF
 
 mkdir -p "$HOME/.config/rofi"
 if [ -f "$DOT_DIR/rofi/config.rasi" ]; then
