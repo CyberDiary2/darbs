@@ -162,23 +162,13 @@ pkg_install \
 # -----------------------------
 # FONTS
 # -----------------------------
-# The darbs XFCE dotfiles set the panel, window titles, and terminal to
-# "JetBrainsMono Nerd Font", so install it or the desktop renders in a fallback.
-log "Installing JetBrainsMono Nerd Font..."
-mkdir -p "$HOME/.local/share/fonts"
-if ! fc-list 2>/dev/null | grep -qi "JetBrainsMono Nerd"; then
-    if curl -fLo /tmp/jbmono.zip \
-        https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip; then
-        unzip -o /tmp/jbmono.zip -d "$HOME/.local/share/fonts/JetBrainsMonoNerd" >/dev/null 2>&1
-        rm -f /tmp/jbmono.zip
-        fc-cache -f >/dev/null 2>&1
-        log "Nerd font installed."
-    else
-        warn "Could not download Nerd Font; XFCE will fall back to a default font."
-    fi
-else
-    log "Nerd font already present."
-fi
+# The darbs XFCE dotfiles reference a Nerd Font; use a plain monospace instead.
+# JetBrains Mono is the same family without the patched glyphs. The XFCE config
+# is rewritten to "JetBrains Mono" further down so the desktop actually uses it.
+# DejaVu is installed as a Unicode-complete fallback.
+log "Installing monospace fonts..."
+pkg_install jetbrains-mono dejavu-fonts
+fc-cache -f >/dev/null 2>&1
 
 # -----------------------------
 # BUILD WHISKERMENU FROM SOURCE
@@ -496,6 +486,16 @@ fi
 
 # fix hardcoded home paths (BSD sed needs empty string for -i)
 sed -i '' "s|/home/drew|$HOME|g" "$XFCONF_DIR/xfce4-desktop.xml" 2>/dev/null || true
+
+# swap the Nerd Font references for the plain JetBrains Mono family we installed.
+# replace the "... Mono" variant first so it doesn't become "JetBrains Mono Mono".
+for xml in "$XFCONF_DIR"/*.xml; do
+    [ -f "$xml" ] || continue
+    sed -i '' \
+        -e 's|JetBrainsMono Nerd Font Mono|JetBrains Mono|g' \
+        -e 's|JetBrainsMono Nerd Font|JetBrains Mono|g' \
+        "$xml" 2>/dev/null || true
+done
 
 cat > "$HOME/.config/xfce4/helpers.rc" <<EOF
 TerminalEmulator=xfce4-terminal
