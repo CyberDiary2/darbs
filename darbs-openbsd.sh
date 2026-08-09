@@ -286,21 +286,164 @@ else
     log "Skipping masscan (already installed)"
 fi
 
-# macchanger
-if ! command -v macchanger >/dev/null 2>&1; then
-    log "Building macchanger..."
-    rm -rf /tmp/macchanger-build
-    git clone --depth 1 https://github.com/alobbs/macchanger.git /tmp/macchanger-build
-    cd /tmp/macchanger-build
-    autoreconf -i 2>/dev/null || true
-    ./configure --prefix=/usr/local
-    make
-    doas make install
-    cd /
-    rm -rf /tmp/macchanger-build
-else
-    log "Skipping macchanger (already installed)"
-fi
+# macchanger (native OpenBSD port)
+# GNU macchanger uses Linux-only SIOCSIFHWADDR ioctls and will not build on
+# OpenBSD, so install a native reimplementation that drives ifconfig(8) lladdr.
+log "Installing native macchanger (ifconfig lladdr wrapper)..."
+doas tee /usr/local/bin/macchanger >/dev/null <<'MACEOF'
+#!/bin/sh
+# macchanger - OpenBSD native reimplementation (darbs)
+#
+# GNU macchanger sets the MAC through Linux-only ioctls (SIOCSIFHWADDR) and does
+# not build on OpenBSD. This drop-in provides the same command-line interface on
+# top of ifconfig(8) lladdr, which is how OpenBSD changes a link-layer address.
+
+VERSION="macchanger 1.0 (OpenBSD/darbs port)"
+STATE_DIR="/var/db/macchanger"
+
+# a handful of real OUIs to imitate common NIC vendors for -a/-A
+OUIS="00:1a:2b 00:0c:29 00:50:56 3c:5a:b4 f4:5c:89 a4:5e:60 00:16:3e d0:37:45"
+
+usage() {
+    cat <<EOF
+GNU MAC Changer (OpenBSD port)
+Usage: macchanger [options] device
+
+Options:
+  -h, --help                    Print this help
+  -V, --version                 Print version and exit
+  -s, --show                    Print the current MAC address and exit
+  -e, --ending                  Keep the vendor bytes, randomize the rest
+  -a, --another                 Set a random vendor MAC of the same kind
+  -A                            Set a random vendor MAC of any kind
+  -r, --random                  Set a fully random MAC
+  -p, --permanent               Reset to the original, permanent MAC
+  -m, --mac=XX:XX:XX:XX:XX:XX    Set the MAC to XX:XX:XX:XX:XX:XX
+
+Requires root (uses doas automatically when not run as root).
+Note: OpenBSD cannot read a NIC's burned-in address once changed, so -p
+restores the first MAC this tool saw for the device (cached in $STATE_DIR).
+A reboot always restores the factory MAC.
+EOF
+}
+
+err() { echo "macchanger: $1" >&2; exit 1; }
+
+# run a privileged command directly if root, otherwise via doas
+priv() {
+    if [ "$(id -u)" -eq 0 ]; then
+        "$@"
+    else
+        doas "$@"
+    fi
+}
+
+rand_byte()  { jot -r 1 0 255; }
+rand_octet() { printf '%02x' "$(rand_byte)"; }
+
+# first octet with the locally-administered bit set (0x02) and multicast cleared
+rand_first_octet() {
+    b=$(rand_byte)
+    b=$(( (b & 0xFE) | 0x02 ))
+    printf '%02x' "$b"
+}
+
+rand_last3() { printf '%s:%s:%s' "$(rand_octet)" "$(rand_octet)" "$(rand_octet)"; }
+
+# pick a random OUI from the built-in list
+pick_oui() {
+    set -- $OUIS
+    idx=$(jot -r 1 1 $#)
+    eval "printf '%s' \"\${$idx}\""
+}
+
+# current lladdr of an interface
+current_mac() {
+    ifconfig "$1" 2>/dev/null | awk '/lladdr/ { print $2; exit }'
+}
+
+set_mac() {
+    _if=$1
+    _mac=$2
+
+    # cache the first MAC we ever see for this device so -p can restore it
+    priv mkdir -p "$STATE_DIR" 2>/dev/null
+    if [ ! -f "$STATE_DIR/$_if" ]; then
+        _cur=$(current_mac "$_if")
+        [ -n "$_cur" ] && printf '%s\n' "$_cur" | priv tee "$STATE_DIR/$_if" >/dev/null
+    fi
+
+    _old=$(current_mac "$_if")
+    priv ifconfig "$_if" down 2>/dev/null
+    priv ifconfig "$_if" lladdr "$_mac" || \
+        err "failed to set MAC (does $_if support lladdr?)"
+    priv ifconfig "$_if" up 2>/dev/null
+    _new=$(current_mac "$_if")
+
+    printf 'Current MAC:   %s\n' "$_old"
+    printf 'New MAC:       %s\n' "$_new"
+}
+
+MODE=show
+MAC=""
+DEV=""
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -h|--help)       usage; exit 0 ;;
+        -V|--version)    echo "$VERSION"; exit 0 ;;
+        -s|--show)       MODE=show ;;
+        -e|--ending)     MODE=ending ;;
+        -a|--another|-A) MODE=another ;;
+        -r|--random)     MODE=random ;;
+        -p|--permanent)  MODE=permanent ;;
+        -m|--mac)        shift; MAC="$1"; MODE=set ;;
+        --mac=*)         MAC="${1#--mac=}"; MODE=set ;;
+        -m*)             MAC="${1#-m}"; MODE=set ;;
+        --)              ;;
+        -*)              err "unknown option: $1" ;;
+        *)               DEV="$1" ;;
+    esac
+    shift
+done
+
+[ -n "$DEV" ] || { usage; exit 1; }
+ifconfig "$DEV" >/dev/null 2>&1 || err "no such device: $DEV"
+
+case "$MODE" in
+    show)
+        mac=$(current_mac "$DEV")
+        [ -n "$mac" ] || err "$DEV has no lladdr (not an ethernet-like device?)"
+        printf 'Current MAC:   %s\n' "$mac"
+        ;;
+    random)
+        set_mac "$DEV" "$(rand_first_octet):$(rand_octet):$(rand_octet):$(rand_last3)"
+        ;;
+    ending)
+        cur=$(current_mac "$DEV")
+        pre=$(printf '%s' "$cur" | cut -d: -f1-3)
+        [ -n "$pre" ] || err "cannot read current OUI for $DEV"
+        set_mac "$DEV" "$pre:$(rand_last3)"
+        ;;
+    another)
+        set_mac "$DEV" "$(pick_oui):$(rand_last3)"
+        ;;
+    permanent)
+        if [ -f "$STATE_DIR/$DEV" ]; then
+            set_mac "$DEV" "$(cat "$STATE_DIR/$DEV")"
+        else
+            err "no cached permanent MAC for $DEV; reboot restores the factory MAC"
+        fi
+        ;;
+    set)
+        printf '%s' "$MAC" | grep -Eq '^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$' || \
+            err "invalid MAC: $MAC"
+        set_mac "$DEV" "$MAC"
+        ;;
+esac
+MACEOF
+doas chmod +x /usr/local/bin/macchanger
+log "macchanger installed to /usr/local/bin/macchanger"
 
 # foremost
 if ! command -v foremost >/dev/null 2>&1; then
