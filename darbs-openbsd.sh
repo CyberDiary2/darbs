@@ -160,6 +160,27 @@ pkg_install \
     sassc
 
 # -----------------------------
+# FONTS
+# -----------------------------
+# The darbs XFCE dotfiles set the panel, window titles, and terminal to
+# "JetBrainsMono Nerd Font", so install it or the desktop renders in a fallback.
+log "Installing JetBrainsMono Nerd Font..."
+mkdir -p "$HOME/.local/share/fonts"
+if ! fc-list 2>/dev/null | grep -qi "JetBrainsMono Nerd"; then
+    if curl -fLo /tmp/jbmono.zip \
+        https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip; then
+        unzip -o /tmp/jbmono.zip -d "$HOME/.local/share/fonts/JetBrainsMonoNerd" >/dev/null 2>&1
+        rm -f /tmp/jbmono.zip
+        fc-cache -f >/dev/null 2>&1
+        log "Nerd font installed."
+    else
+        warn "Could not download Nerd Font; XFCE will fall back to a default font."
+    fi
+else
+    log "Nerd font already present."
+fi
+
+# -----------------------------
 # BUILD WHISKERMENU FROM SOURCE
 # -----------------------------
 log "Building xfce4-whiskermenu-plugin from source..."
