@@ -1282,13 +1282,127 @@ log "They will appear under 'Security' in Whisker Menu."
 fi  # end security shortcuts skip block
 
 # -----------------------------
+# SUCKLESS SUITE (dwm / st / dmenu / dwmblocks) -- LARBS keybindings
+# -----------------------------
+# Adds Luke Smith's LARBS tiling setup as a SECOND session alongside XFCE.
+# You pick "dwm" or "Xfce Session" from the LightDM session menu at login.
+# Sources build from your own dotfiles when present, otherwise clones Luke's
+# forks (which carry his exact config.h keybindings) into the dotfiles tree.
+if [ "${SKIP_DWM:-0}" != "1" ]; then
+    log "Installing suckless suite (dwm + st + dmenu + dwmblocks)..."
+
+    # build + runtime deps
+    pacman_install \
+        base-devel git \
+        libx11 libxft libxinerama freetype2 fontconfig \
+        xorg-xsetroot xorg-setxkbmap \
+        picom dunst libnotify \
+        feh xwallpaper xclip xdotool xcape \
+        ttf-jetbrains-mono-nerd ttf-nerd-fonts-symbols ttf-liberation terminus-font
+
+    # build one suckless component from $DOT_DIR/<name>, cloning Luke's fork if absent.
+    # compile as the user (keeps object files user-owned in your dotfiles), install as root.
+    build_suckless() {
+        local name="$1" url="$2"
+        local src="$DOT_DIR/$name"
+        if [ -d "$src" ]; then
+            log "Building $name from your dotfiles ($src)"
+        else
+            log "Cloning $name from Luke Smith's fork into dotfiles..."
+            if ! git clone --depth 1 "$url" "$src"; then
+                log "WARNING: could not clone $name, skipping"
+                return 1
+            fi
+        fi
+        # suckless auto-creates config.h from config.def.h; make it explicit so the
+        # keybindings are editable and survive in your dotfiles.
+        if [ -f "$src/config.def.h" ] && [ ! -f "$src/config.h" ]; then
+            cp "$src/config.def.h" "$src/config.h"
+        fi
+        if ( cd "$src" && make clean && make && sudo make install ); then
+            log "$name installed to /usr/local/bin"
+        else
+            log "WARNING: build/install of $name failed"
+        fi
+    }
+
+    build_suckless dwm       "https://github.com/LukeSmithxyz/dwm"
+    build_suckless st        "https://github.com/LukeSmithxyz/st"
+    build_suckless dmenu     "https://github.com/LukeSmithxyz/dmenu"
+    build_suckless dwmblocks "https://github.com/LukeSmithxyz/dwmblocks"
+
+    # LARBS status bar + keybinding helper scripts (sb-*, dmenu* etc.) live in voidrice.
+    # Copy them so dwmblocks and the script-backed keybindings actually work.
+    # --no-clobber so we never overwrite scripts you already have in ~/.local/bin.
+    log "Fetching LARBS helper scripts (voidrice)..."
+    if git clone --depth 1 https://github.com/LukeSmithxyz/voidrice /tmp/voidrice 2>/dev/null; then
+        mkdir -p "$HOME/.local/bin"
+        if [ -d /tmp/voidrice/.local/bin ]; then
+            cp -rn /tmp/voidrice/.local/bin/. "$HOME/.local/bin/" 2>/dev/null || true
+            chmod -R +x "$HOME/.local/bin" 2>/dev/null || true
+            log "LARBS scripts copied to ~/.local/bin (statusbar/, dmenu helpers)"
+        fi
+    else
+        log "WARNING: could not fetch voidrice; dwmblocks will show a bare bar until sb-* scripts exist"
+    fi
+
+    # Session launcher: sets env + starts the LARBS background bits, then execs dwm.
+    # Lives in /usr/local/bin so it is always on PATH for LightDM's session Exec.
+    # This is the single autostart path (we do not rely on the dwm autostart patch),
+    # so nothing is launched twice.
+    sudo tee /usr/local/bin/darbs-dwm-session > /dev/null <<'DWMSESSION'
+#!/bin/sh
+# darbs: dwm session with LARBS environment
+export PATH="$HOME/.local/bin:$HOME/.local/bin/statusbar:$PATH"
+export TERMINAL="st"
+export EDITOR="${EDITOR:-nano}"
+command -v firefox >/dev/null 2>&1 && export BROWSER="firefox"
+
+# LARBS quality-of-life: caps acts as escape, faster key repeat
+setxkbmap -option caps:escape 2>/dev/null &
+xset r rate 300 50 2>/dev/null &
+
+# wallpaper (darbs sets ~/wallpapers/0327.jpg)
+if [ -f "$HOME/wallpapers/0327.jpg" ]; then
+    if command -v xwallpaper >/dev/null 2>&1; then
+        xwallpaper --zoom "$HOME/wallpapers/0327.jpg" &
+    else
+        feh --bg-fill "$HOME/wallpapers/0327.jpg" &
+    fi
+fi
+
+command -v picom      >/dev/null 2>&1 && picom &
+command -v dunst      >/dev/null 2>&1 && dunst &
+command -v dwmblocks  >/dev/null 2>&1 && dwmblocks &
+
+exec dwm
+DWMSESSION
+    sudo chmod +x /usr/local/bin/darbs-dwm-session
+
+    # LightDM session entry so "dwm" appears in the greeter session menu next to XFCE
+    sudo mkdir -p /usr/share/xsessions
+    sudo tee /usr/share/xsessions/dwm.desktop > /dev/null <<'DWMDESKTOP'
+[Desktop Entry]
+Name=dwm
+Comment=Dynamic Window Manager (LARBS keybindings)
+Exec=/usr/local/bin/darbs-dwm-session
+Type=XSession
+DWMDESKTOP
+
+    log "dwm session installed. Choose 'dwm' from the LightDM session menu at login."
+    log "Keybindings: Super+Enter=st, Super+d=dmenu, Super+j/k=focus, Super+Shift+q=quit dwm."
+    log "Edit keybindings in ~/.dotfiles/dwm/config.h then rerun: cd ~/.dotfiles/dwm && sudo make install"
+fi  # end suckless suite
+
+# -----------------------------
 # FINISH
 # -----------------------------
 log "DARBS Artix installation complete!"
 
 echo -e "${BLUE}"
 echo "====================================="
-echo " DONE! Reboot into XFCE."
+echo " DONE! Reboot, then pick XFCE or dwm"
+echo " from the session menu at the login screen."
 echo " Init system: $INIT_SYS"
 echo "====================================="
 echo -e "${RESET}"
