@@ -1295,7 +1295,7 @@ if [ "${SKIP_DWM:-0}" != "1" ]; then
     pacman_install \
         base-devel git \
         libx11 libxft libxinerama freetype2 fontconfig \
-        xorg-xsetroot xorg-setxkbmap \
+        xorg-xsetroot xorg-setxkbmap xorg-xrdb \
         picom dunst libnotify \
         feh xwallpaper xclip xdotool xcape \
         ttf-jetbrains-mono-nerd ttf-nerd-fonts-symbols ttf-liberation terminus-font
@@ -1346,6 +1346,45 @@ if [ "${SKIP_DWM:-0}" != "1" ]; then
         log "WARNING: could not fetch voidrice; dwmblocks will show a bare bar until sb-* scripts exist"
     fi
 
+    # darbs Everforest palette. Luke's dwm AND st both read their colors from X
+    # resources at startup (Super+F5 reloads them live), so one xresources file
+    # themes the whole suite. dwm maps: color0 -> bg + normal border + selected
+    # tag text, color4 -> bar text + selected tag bg, color8 -> focused window
+    # border. Hexes below are darbs' own: bg #0d1210, fg #d3c6aa, green #5a9e44,
+    # blue #83a598 -- the same values used elsewhere in this script.
+    log "Writing darbs Everforest palette (~/.config/x11/xresources)..."
+    mkdir -p "$HOME/.config/x11"
+    cat > "$HOME/.config/x11/xresources" <<'XRESOURCES'
+! darbs Everforest (dark) -- shared by dwm and st
+*.background:   #0d1210
+*.foreground:   #d3c6aa
+*.cursorColor:  #5a9e44
+! black / bright black  (color8 = darbs green -> green focused-window border in dwm)
+*.color0:       #0d1210
+*.color8:       #5a9e44
+! red
+*.color1:       #e67e80
+*.color9:       #e67e80
+! green (darbs signature green)
+*.color2:       #5a9e44
+*.color10:      #a7c080
+! yellow
+*.color3:       #dbbc7f
+*.color11:      #dbbc7f
+! blue (darbs blue -> dwm bar text + selected tag)
+*.color4:       #83a598
+*.color12:      #7fbbb3
+! magenta
+*.color5:       #d699b6
+*.color13:      #d699b6
+! cyan
+*.color6:       #83c092
+*.color14:      #83c092
+! white / bright white (foreground)
+*.color7:       #d3c6aa
+*.color15:      #d3c6aa
+XRESOURCES
+
     # Session launcher: sets env + starts the LARBS background bits, then execs dwm.
     # Lives in /usr/local/bin so it is always on PATH for LightDM's session Exec.
     # This is the single autostart path (we do not rely on the dwm autostart patch),
@@ -1357,6 +1396,9 @@ export PATH="$HOME/.local/bin:$HOME/.local/bin/statusbar:$PATH"
 export TERMINAL="st"
 export EDITOR="${EDITOR:-nano}"
 command -v firefox >/dev/null 2>&1 && export BROWSER="firefox"
+
+# load darbs Everforest colors so dwm and st are themed (Super+F5 reloads them)
+[ -f "$HOME/.config/x11/xresources" ] && xrdb -merge "$HOME/.config/x11/xresources" 2>/dev/null
 
 # LARBS quality-of-life: caps acts as escape, faster key repeat
 setxkbmap -option caps:escape 2>/dev/null &
