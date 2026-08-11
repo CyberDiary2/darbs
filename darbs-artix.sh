@@ -1300,6 +1300,13 @@ if [ "${SKIP_DWM:-0}" != "1" ]; then
         feh xwallpaper xclip xdotool xcape \
         ttf-jetbrains-mono-nerd ttf-nerd-fonts-symbols ttf-liberation terminus-font
 
+    # suckless needs a working C toolchain; base-devel should provide it, but if
+    # that install failed the builds below would fail cryptically. Check first.
+    if ! command -v make >/dev/null 2>&1 || ! { command -v gcc >/dev/null 2>&1 || command -v cc >/dev/null 2>&1; }; then
+        log "WARNING: make/gcc missing (base-devel did not install). Retrying base-devel..."
+        sudo pacman -S --needed --noconfirm base-devel 2>/dev/null || true
+    fi
+
     # build one suckless component from $DOT_DIR/<name>, cloning Luke's fork if absent.
     # compile as the user (keeps object files user-owned in your dotfiles), install as root.
     build_suckless() {
@@ -1392,6 +1399,9 @@ XRESOURCES
     sudo tee /usr/local/bin/darbs-dwm-session > /dev/null <<'DWMSESSION'
 #!/bin/sh
 # darbs: dwm session with LARBS environment
+# log everything so a failed login can be diagnosed from ~/.dwm-session.log
+exec >"$HOME/.dwm-session.log" 2>&1
+echo "darbs dwm session start: $(date)"
 export PATH="$HOME/.local/bin:$HOME/.local/bin/statusbar:$PATH"
 export TERMINAL="st"
 export EDITOR="${EDITOR:-nano}"
@@ -1417,23 +1427,44 @@ command -v picom      >/dev/null 2>&1 && picom &
 command -v dunst      >/dev/null 2>&1 && dunst &
 command -v dwmblocks  >/dev/null 2>&1 && dwmblocks &
 
-exec dwm
+# start dwm if it built; otherwise fall back to a terminal (or xterm) so login
+# lands on a usable screen instead of bouncing straight back to the greeter
+if command -v dwm >/dev/null 2>&1; then
+    exec dwm
+elif command -v st >/dev/null 2>&1; then
+    echo "dwm not found; falling back to st. build it: cd ~/.dotfiles/dwm && sudo make install"
+    exec st
+elif command -v xterm >/dev/null 2>&1; then
+    exec xterm
+else
+    echo "dwm, st and xterm all missing; cannot start a session"
+    exec sh -c 'sleep 5'
+fi
 DWMSESSION
     sudo chmod +x /usr/local/bin/darbs-dwm-session
 
-    # LightDM session entry so "dwm" appears in the greeter session menu next to XFCE
-    sudo mkdir -p /usr/share/xsessions
-    sudo tee /usr/share/xsessions/dwm.desktop > /dev/null <<'DWMDESKTOP'
+    # LightDM session entry so "dwm" appears in the greeter session menu next to
+    # XFCE -- ONLY if dwm actually built. Registering a session whose Exec dies
+    # immediately is what traps you at the login screen, so skip it on failure.
+    if command -v dwm >/dev/null 2>&1; then
+        sudo mkdir -p /usr/share/xsessions
+        sudo tee /usr/share/xsessions/dwm.desktop > /dev/null <<'DWMDESKTOP'
 [Desktop Entry]
 Name=dwm
 Comment=Dynamic Window Manager (LARBS keybindings)
 Exec=/usr/local/bin/darbs-dwm-session
 Type=XSession
 DWMDESKTOP
-
-    log "dwm session installed. Choose 'dwm' from the LightDM session menu at login."
-    log "Keybindings: Super+Enter=st, Super+d=dmenu, Super+j/k=focus, Super+Shift+q=quit dwm."
-    log "Edit keybindings in ~/.dotfiles/dwm/config.h then rerun: cd ~/.dotfiles/dwm && sudo make install"
+        log "dwm session installed. Choose 'dwm' from the LightDM session menu at login."
+        log "Keybindings: Super+Enter=st, Super+d=dmenu, Super+j/k=focus, Super+Shift+q=quit dwm."
+        log "Edit keybindings in ~/.dotfiles/dwm/config.h then rerun: cd ~/.dotfiles/dwm && sudo make install"
+    else
+        # remove any stale broken entry from a previous failed run
+        sudo rm -f /usr/share/xsessions/dwm.desktop 2>/dev/null || true
+        log "WARNING: dwm did not build, so the dwm login session was NOT registered."
+        log "         Fix the build (see ~/darbs.log), then rerun this script or:"
+        log "         cd ~/.dotfiles/dwm && sudo make clean install"
+    fi
 fi  # end suckless suite
 
 # -----------------------------
