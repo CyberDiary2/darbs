@@ -998,6 +998,43 @@ gtk-font-name = Noto Sans 10
 gtk-cursor-theme-name = Adwaita
 EOF
 
+# xfce4-terminal color scheme (darbs Everforest) -- the GTK theme only colors the
+# window frame; the colors INSIDE the terminal live here. Same 16-color palette as
+# st/dwm/i3. Backs up any existing terminalrc so a custom one is not lost.
+mkdir -p "$HOME/.config/xfce4/terminal"
+if [ -f "$HOME/.config/xfce4/terminal/terminalrc" ] && ! grep -q '0d1210' "$HOME/.config/xfce4/terminal/terminalrc" 2>/dev/null; then
+    cp "$HOME/.config/xfce4/terminal/terminalrc" "$HOME/.config/xfce4/terminal/terminalrc.pre-darbs.bak"
+fi
+cat > "$HOME/.config/xfce4/terminal/terminalrc" <<'EOF'
+[Configuration]
+FontName=JetBrainsMono Nerd Font 11
+MiscAlwaysShowTabs=FALSE
+MiscBell=FALSE
+MiscBordersDefault=TRUE
+MiscCursorBlinks=FALSE
+MiscCursorShape=TERMINAL_CURSOR_SHAPE_BLOCK
+MiscDefaultGeometry=90x24
+MiscInheritGeometry=FALSE
+MiscMenubarDefault=FALSE
+MiscMouseAutohide=FALSE
+MiscToolbarDefault=FALSE
+MiscConfirmClose=TRUE
+MiscCycleTabs=TRUE
+MiscTabCloseButtons=TRUE
+MiscTabCloseMiddleClick=TRUE
+MiscTabPosition=GTK_POS_TOP
+MiscHighlightUrls=TRUE
+ScrollingBar=TERMINAL_SCROLLBAR_NONE
+BackgroundDarkness=1.000000
+ColorForeground=#d3c6aa
+ColorBackground=#0d1210
+ColorCursor=#5a9e44
+ColorCursorForeground=#0d1210
+ColorBold=#d3c6aa
+ColorPalette=#0d1210;#e67e80;#5a9e44;#dbbc7f;#83a598;#d699b6;#83c092;#d3c6aa;#5a9e44;#e67e80;#a7c080;#dbbc7f;#7fbbb3;#d699b6;#83c092;#d3c6aa
+EOF
+log "xfce4-terminal Everforest color scheme written."
+
 # xfconf XML files -- written directly so they survive without a live session
 XFCONF_DIR="$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
 mkdir -p "$XFCONF_DIR"
