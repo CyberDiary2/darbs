@@ -434,7 +434,6 @@ pacman_install \
     sassc \
     calcurse \
     caligula \
-    texlive \
     texmaker \
     xfce4-weather-plugin \
     xfce4-systemload-plugin \
@@ -468,6 +467,20 @@ pacman_install \
     imv \
     zathura \
     zathura-pdf-mupdf
+
+# -----------------------------
+# TEX LIVE (large -- skip if already installed)
+# -----------------------------
+# texlive can resolve as a group/meta package, so the generic "already installed"
+# check in pacman_install is unreliable for it and it would try to pull several GB
+# on every rerun. Guard it explicitly: installed as a package, as a group with any
+# member present, or a working tex binary all count as "already there".
+if pacman -Qi texlive &>/dev/null || pacman -Qg texlive &>/dev/null || command -v tex &>/dev/null; then
+    log "Skipping texlive (already installed)"
+else
+    log "Installing texlive (large download, this may take a while)..."
+    pacman_install texlive
+fi
 
 # -----------------------------
 # ENABLE SERVICES
