@@ -140,6 +140,24 @@ done
 AREOF
 chmod +x "$HOME/.local/bin/darbs-autorotate"
 
+# wallpaper cycler: rotates through every image in ~/wallpapers on an interval
+cat > "$HOME/.local/bin/darbs-wallpaper" <<'WPEOF'
+#!/bin/sh
+# cycle wallpapers from ~/wallpapers (override interval: DARBS_WALL_INTERVAL secs)
+DIR="$HOME/wallpapers"
+INTERVAL=${DARBS_WALL_INTERVAL:-300}
+while :; do
+    WALL=$(find "$DIR" -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) 2>/dev/null | shuf -n1)
+    if [ -n "$WALL" ]; then
+        feh --bg-fill "$WALL"
+    else
+        xsetroot -solid "#0d1210"
+    fi
+    sleep "$INTERVAL"
+done
+WPEOF
+chmod +x "$HOME/.local/bin/darbs-wallpaper"
+
 # load the accelerometer module now and at every boot (best effort)
 log "Enabling hdaps accelerometer module (best effort)..."
 echo -e "tp_smapi\nhdaps" | sudo tee /etc/modules-load.d/darbs-hdaps.conf > /dev/null
@@ -307,7 +325,7 @@ set $urgent #e67e80
 # ---- autostart ----
 exec_always --no-startup-id setxkbmap -option caps:escape
 exec_always --no-startup-id sh -c 'test -f "$HOME/.config/x11/xresources" && xrdb -merge "$HOME/.config/x11/xresources"'
-exec_always --no-startup-id sh -c 'test -f "$HOME/wallpapers/0327.jpg" && feh --bg-fill "$HOME/wallpapers/0327.jpg" || xsetroot -solid "#0d1210"'
+exec --no-startup-id ~/.local/bin/darbs-wallpaper
 exec --no-startup-id picom
 exec --no-startup-id xfce4-panel
 exec --no-startup-id dunst
@@ -396,6 +414,9 @@ bindsym $mod+Ctrl+j resize shrink height 5 px or 5 ppt
 bindsym $mod+Ctrl+equal exec --no-startup-id picom-trans -c +5
 bindsym $mod+Ctrl+minus exec --no-startup-id picom-trans -c -5
 bindsym $mod+Ctrl+0 exec --no-startup-id picom-trans -c --reset
+
+# ---- wallpaper: jump to a random one now ----
+bindsym $mod+Ctrl+w exec --no-startup-id sh -c 'feh --bg-fill "$(find "$HOME/wallpapers" -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" \) | shuf -n1)"'
 
 # ---- scratchpad ----
 bindsym $mod+grave scratchpad show
@@ -598,20 +619,29 @@ else
 fi
 
 # -----------------------------
-# WALLPAPER (best effort from the darbs dotfiles; solid Everforest otherwise)
+# WALLPAPERS (grab ALL of them from the darbs dotfiles for the cycler)
 # -----------------------------
-log "Fetching wallpaper (best effort)..."
+log "Syncing wallpapers (best effort)..."
 mkdir -p "$HOME/wallpapers"
-if [ ! -f "$HOME/wallpapers/0327.jpg" ]; then
+rm -rf /tmp/darbs-dotfiles
+if git clone --depth 1 https://github.com/CyberDiary2/dotfiles /tmp/darbs-dotfiles 2>/dev/null && [ -d /tmp/darbs-dotfiles/wallpapers ]; then
+    cp -rn /tmp/darbs-dotfiles/wallpapers/. "$HOME/wallpapers/" 2>/dev/null || true
+    log "All wallpapers synced from dotfiles."
+else
+    # fallback: just the one wallpaper via raw
     for br in master main; do
-        if curl -fsSL "https://raw.githubusercontent.com/CyberDiary2/dotfiles/$br/wallpapers/0327.jpg" -o "$HOME/wallpapers/0327.jpg"; then
-            break
-        fi
+        curl -fsSL "https://raw.githubusercontent.com/CyberDiary2/dotfiles/$br/wallpapers/0327.jpg" -o "$HOME/wallpapers/0327.jpg" && break
     done
+    log "WARNING: could not clone dotfiles; fetched a single wallpaper only."
 fi
-if [ -f "$HOME/wallpapers/0327.jpg" ]; then
+rm -rf /tmp/darbs-dotfiles
+
+# greeter background: prefer 0327.jpg, else the first wallpaper found
+GREETER_SRC="$HOME/wallpapers/0327.jpg"
+[ -f "$GREETER_SRC" ] || GREETER_SRC=$(find "$HOME/wallpapers" -type f \( -iname '*.jpg' -o -iname '*.png' \) 2>/dev/null | sort | head -1)
+if [ -n "$GREETER_SRC" ] && [ -f "$GREETER_SRC" ]; then
     sudo mkdir -p /usr/share/backgrounds
-    sudo cp -f "$HOME/wallpapers/0327.jpg" /usr/share/backgrounds/darbs.jpg 2>/dev/null || true
+    sudo cp -f "$GREETER_SRC" /usr/share/backgrounds/darbs.jpg 2>/dev/null || true
 fi
 
 # -----------------------------
