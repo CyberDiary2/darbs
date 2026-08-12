@@ -135,7 +135,10 @@ for pkg in responder crackmapexec python3-impacket seclists; do
     if dpkg -s "$pkg" &>/dev/null; then
         log "Skipping $pkg (already installed)"
     else
-        sudo apt install -y -t kali-rolling "$pkg" 2>/dev/null || log "Could not install $pkg from Kali repo, trying Debian..." && apt_install "$pkg"
+        if ! sudo apt install -y -t kali-rolling "$pkg" 2>/dev/null; then
+            log "Could not install $pkg from Kali repo, trying Debian..."
+            apt_install "$pkg"
+        fi
     fi
 done
 
