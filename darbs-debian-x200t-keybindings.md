@@ -100,6 +100,18 @@ Note: plain `Ctrl`, not `Super`. Permanent size is the `size` value under
 Global defaults live in `~/.config/picom/picom.conf` (`inactive-opacity` and the
 `opacity-rule` lines).
 
+## Wallpaper
+
+Wallpapers in `~/wallpapers` cycle automatically every 5 minutes (a `feh`
+slideshow run by `~/.local/bin/darbs-wallpaper`).
+
+| Keys | Action |
+| --- | --- |
+| `Super + Ctrl + w` | Jump to a random wallpaper now |
+
+Change the interval by launching the cycler with `DARBS_WALL_INTERVAL=<seconds>`,
+or edit `~/.local/bin/darbs-wallpaper`. Add or remove images in `~/wallpapers`.
+
 ## Workspaces
 
 | Keys | Action |
