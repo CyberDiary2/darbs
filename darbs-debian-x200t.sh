@@ -32,6 +32,7 @@ sudo apt install -y \
     xserver-xorg-input-wacom xserver-xorg-input-libinput \
     i3 i3status i3lock suckless-tools \
     picom dunst feh rofi xss-lock \
+    xfce4-panel xfce4-whiskermenu-plugin \
     lightdm lightdm-gtk-greeter \
     network-manager network-manager-gnome \
     pulseaudio pulseaudio-utils pavucontrol \
@@ -306,6 +307,7 @@ exec_always --no-startup-id setxkbmap -option caps:escape
 exec_always --no-startup-id sh -c 'test -f "$HOME/.config/x11/xresources" && xrdb -merge "$HOME/.config/x11/xresources"'
 exec_always --no-startup-id sh -c 'test -f "$HOME/wallpapers/0327.jpg" && feh --bg-fill "$HOME/wallpapers/0327.jpg" || xsetroot -solid "#0d1210"'
 exec --no-startup-id picom
+exec --no-startup-id xfce4-panel
 exec --no-startup-id dunst
 exec --no-startup-id nm-applet
 exec --no-startup-id /usr/lib/mate-polkit/polkit-mate-authentication-agent-1
@@ -387,6 +389,11 @@ bindsym $mod+Ctrl+l resize grow width 5 px or 5 ppt
 bindsym $mod+Ctrl+k resize grow height 5 px or 5 ppt
 bindsym $mod+Ctrl+j resize shrink height 5 px or 5 ppt
 
+# ---- transparency of the focused window (picom must be running) ----
+bindsym $mod+Ctrl+equal exec --no-startup-id picom-trans -c +5
+bindsym $mod+Ctrl+minus exec --no-startup-id picom-trans -c -5
+bindsym $mod+Ctrl+0 exec --no-startup-id picom-trans -c --reset
+
 # ---- scratchpad ----
 bindsym $mod+grave scratchpad show
 bindsym $mod+Shift+grave move scratchpad
@@ -436,20 +443,8 @@ client.urgent           $urgent $urgent $bg   $urgent   $urgent
 client.placeholder      $bg     $bg     $fg   $bg       $bg
 client.background       $bg
 
-bar {
-    status_command i3status
-    position top
-    font pango:monospace 10
-    colors {
-        background $bg
-        statusline $fg
-        separator  $green
-        focused_workspace  $green  $green  $bg
-        active_workspace   $gray   $gray   $fg
-        inactive_workspace $bg     $bg     $fg
-        urgent_workspace   $urgent $urgent $bg
-    }
-}
+# No i3bar: xfce4-panel provides the clickable top toolbar (menu, tasklist,
+# tray, clock) and is started from the autostart section above.
 I3EOF
 
 cat > "$HOME/.config/i3status/config" <<'EOF'
@@ -493,6 +488,97 @@ volume master {
 tztime local {
     format = "%Y-%m-%d %H:%M"
 }
+EOF
+
+# -----------------------------
+# PICOM (compositor: window transparency)
+# -----------------------------
+# xrender backend + no shadows keeps the old Intel GMA on the X200t responsive.
+# Unfocused windows go translucent; terminals stay slightly see-through.
+log "Writing picom transparency config..."
+mkdir -p "$HOME/.config/picom"
+cat > "$HOME/.config/picom/picom.conf" <<'EOF'
+backend = "xrender";
+vsync = true;
+
+# transparency
+inactive-opacity = 0.88;
+active-opacity = 1.00;
+frame-opacity = 0.90;
+inactive-opacity-override = false;
+
+opacity-rule = [
+    "92:class_g = 'Alacritty' && focused",
+    "82:class_g = 'Alacritty' && !focused",
+    "95:class_g = 'Xfce4-panel'"
+];
+
+# fading
+fading = true;
+fade-in-step = 0.06;
+fade-out-step = 0.06;
+
+# shadows off (cheap on old hardware)
+shadow = false;
+
+# do not fade/blur the panel or dock oddly
+wintypes:
+{
+    dock = { shadow = false; };
+    tooltip = { fade = true; shadow = false; opacity = 0.95; focus = true; };
+    popup_menu = { opacity = 0.95; };
+    dropdown_menu = { opacity = 0.95; };
+};
+EOF
+
+# -----------------------------
+# XFCE4-PANEL LAYOUT (clickable toolbar inside i3)
+# -----------------------------
+# Pre-seed a top panel so xfce4-panel comes up configured (no first-run dialog):
+# Whisker app menu, window tasklist, spacer, system tray, clock.
+log "Writing xfce4-panel layout..."
+XFCONF_DIR="$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
+mkdir -p "$XFCONF_DIR"
+cat > "$XFCONF_DIR/xfce4-panel.xml" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-panel" version="1.0">
+  <property name="configver" type="int" value="2"/>
+  <property name="panels" type="array">
+    <value type="int" value="1"/>
+    <property name="dark-mode" type="bool" value="true"/>
+    <property name="panel-1" type="empty">
+      <property name="position" type="string" value="p=6;x=0;y=0"/>
+      <property name="length" type="uint" value="100"/>
+      <property name="position-locked" type="bool" value="true"/>
+      <property name="icon-size" type="uint" value="16"/>
+      <property name="size" type="uint" value="28"/>
+      <property name="plugin-ids" type="array">
+        <value type="int" value="1"/>
+        <value type="int" value="2"/>
+        <value type="int" value="3"/>
+        <value type="int" value="4"/>
+        <value type="int" value="5"/>
+      </property>
+    </property>
+  </property>
+  <property name="plugins" type="empty">
+    <property name="plugin-1" type="string" value="whiskermenu"/>
+    <property name="plugin-2" type="string" value="tasklist">
+      <property name="grouping" type="uint" value="1"/>
+    </property>
+    <property name="plugin-3" type="string" value="separator">
+      <property name="expand" type="bool" value="true"/>
+      <property name="style" type="uint" value="0"/>
+    </property>
+    <property name="plugin-4" type="string" value="systray">
+      <property name="square-icons" type="bool" value="true"/>
+    </property>
+    <property name="plugin-5" type="string" value="clock">
+      <property name="digital-layout" type="uint" value="3"/>
+      <property name="digital-time-format" type="string" value="%Y-%m-%d %H:%M"/>
+    </property>
+  </property>
+</channel>
 EOF
 
 # -----------------------------
