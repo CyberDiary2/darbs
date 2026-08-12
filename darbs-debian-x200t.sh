@@ -12,6 +12,7 @@
 # LightDM login, dmenu launcher, pcmanfm+ranger files, neovim, i3status bar.
 
 set -u
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GREEN="\e[32m"; BLUE="\e[34m"; RESET="\e[0m"
 log() { echo -e "${GREEN}==>${RESET} $1"; }
 
@@ -43,7 +44,7 @@ sudo apt install -y \
     alacritty \
     firefox-esr \
     ranger pcmanfm \
-    neovim nano htop git curl wget unzip \
+    neovim nano htop git curl wget unzip tmux \
     flameshot \
     papirus-icon-theme sassc \
     fonts-dejavu fonts-noto \
@@ -582,6 +583,19 @@ cat > "$XFCONF_DIR/xfce4-panel.xml" <<'EOF'
   </property>
 </channel>
 EOF
+
+# -----------------------------
+# TMUX CONFIG (the darbs .tmux.conf)
+# -----------------------------
+log "Installing tmux config..."
+if [ -f "$SCRIPT_DIR/.tmux.conf" ]; then
+    cp "$SCRIPT_DIR/.tmux.conf" "$HOME/.tmux.conf"
+    log "tmux config copied from the repo."
+elif curl -fsSL "https://raw.githubusercontent.com/CyberDiary2/darbs/main/.tmux.conf" -o "$HOME/.tmux.conf"; then
+    log "tmux config fetched from GitHub."
+else
+    log "WARNING: could not install .tmux.conf (repo file missing and fetch failed)."
+fi
 
 # -----------------------------
 # WALLPAPER (best effort from the darbs dotfiles; solid Everforest otherwise)
