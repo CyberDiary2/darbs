@@ -36,6 +36,7 @@ sudo apt install -y \
     network-manager network-manager-gnome \
     pulseaudio pulseaudio-utils pavucontrol \
     brightnessctl \
+    tp-smapi-dkms libnotify-bin \
     mate-polkit \
     alacritty \
     firefox-esr \
@@ -57,19 +58,34 @@ log "Installing screen rotation script..."
 mkdir -p "$HOME/.local/bin"
 cat > "$HOME/.local/bin/darbs-rotate" <<'ROTEOF'
 #!/bin/sh
-# darbs screen + pen rotation for a convertible tablet
+# darbs screen + pen rotation for a convertible tablet.
+# Usage: darbs-rotate [normal|right|inverted|left]
+#   no argument -> cycle to the next orientation
 # find the internal panel (LVDS on the X200t), else the first connected output
 OUT=$(xrandr | awk '/LVDS.* connected/{print $1; exit}')
 [ -z "$OUT" ] && OUT=$(xrandr | awk '/ connected/{print $1; exit}')
 
 STATE="${XDG_RUNTIME_DIR:-/tmp}/darbs-screen-rotation"
-CUR=$(cat "$STATE" 2>/dev/null || echo normal)
-case "$CUR" in
-    normal)   NEW=right;    WROT=cw   ;;
-    right)    NEW=inverted; WROT=half ;;
-    inverted) NEW=left;     WROT=ccw  ;;
-    *)        NEW=normal;   WROT=none ;;
+if [ -n "$1" ]; then
+    NEW="$1"
+else
+    CUR=$(cat "$STATE" 2>/dev/null || echo normal)
+    case "$CUR" in
+        normal)   NEW=right    ;;
+        right)    NEW=inverted ;;
+        inverted) NEW=left     ;;
+        *)        NEW=normal   ;;
+    esac
+fi
+case "$NEW" in
+    right)    WROT=cw   ;;
+    inverted) WROT=half ;;
+    left)     WROT=ccw  ;;
+    *)        NEW=normal; WROT=none ;;
 esac
+
+# skip if already in that orientation (keeps the auto-rotate daemon quiet)
+[ "$(cat "$STATE" 2>/dev/null)" = "$NEW" ] && exit 0
 
 xrandr --output "$OUT" --rotate "$NEW"
 echo "$NEW" > "$STATE"
@@ -78,11 +94,54 @@ echo "$NEW" > "$STATE"
 xsetwacom --list devices 2>/dev/null | sed -n 's/.*id: \([0-9]\+\).*/\1/p' | while read -r id; do
     xsetwacom set "$id" Rotate "$WROT" 2>/dev/null || true
 done
-
-# nudge i3 to relayout for the new geometry
-command -v i3-msg >/dev/null 2>&1 && i3-msg restart >/dev/null 2>&1 || true
 ROTEOF
 chmod +x "$HOME/.local/bin/darbs-rotate"
+
+# auto-rotate daemon: reads the ThinkPad APS (hdaps) accelerometer and rotates
+# to match how you are physically holding the tablet. hdaps support on the X200
+# is hit or miss, so this exits cleanly if the sensor is not exposed. Thresholds
+# and axis signs are calibration knobs (override via env before launch).
+cat > "$HOME/.local/bin/darbs-autorotate" <<'AREOF'
+#!/bin/sh
+# auto screen rotation from the hdaps accelerometer
+POS=/sys/devices/platform/hdaps/position
+if [ ! -r "$POS" ]; then
+    command -v notify-send >/dev/null 2>&1 && \
+        notify-send "darbs-autorotate" "No hdaps sensor. Load it: sudo modprobe hdaps. If it still fails, this X200t does not expose the accelerometer."
+    exit 1
+fi
+
+THRESH=${DARBS_AR_THRESH:-45}   # ignore tilts smaller than this (near-flat)
+INTERVAL=${DARBS_AR_INTERVAL:-1}
+LAST=""
+while :; do
+    RAW=$(cat "$POS" 2>/dev/null | tr -d '() ')   # "(x,y)" -> "x,y"
+    X=${RAW%,*}; Y=${RAW#*,}
+    case "$X$Y" in *[!0-9-]*|"") sleep "$INTERVAL"; continue ;; esac
+    ax=${X#-}; ay=${Y#-}
+    # near flat on a desk: keep whatever we have, do not flip randomly
+    if [ "$ax" -lt "$THRESH" ] && [ "$ay" -lt "$THRESH" ]; then
+        sleep "$INTERVAL"; continue
+    fi
+    if [ "$ax" -ge "$ay" ]; then
+        [ "$X" -gt 0 ] && O=right || O=left
+    else
+        [ "$Y" -gt 0 ] && O=normal || O=inverted
+    fi
+    if [ "$O" != "$LAST" ]; then
+        "$HOME/.local/bin/darbs-rotate" "$O"
+        LAST="$O"
+    fi
+    sleep "$INTERVAL"
+done
+AREOF
+chmod +x "$HOME/.local/bin/darbs-autorotate"
+
+# load the accelerometer module now and at every boot (best effort)
+log "Enabling hdaps accelerometer module (best effort)..."
+echo -e "tp_smapi\nhdaps" | sudo tee /etc/modules-load.d/darbs-hdaps.conf > /dev/null
+sudo modprobe tp_smapi 2>/dev/null || true
+sudo modprobe hdaps 2>/dev/null || true
 
 # -----------------------------
 # EVERFOREST GTK THEME
@@ -264,9 +323,14 @@ smart_gaps on
 smart_borders on
 default_border pixel 2
 
-# ---- tablet: rotate screen + pen (bezel button or Super+o) ----
+# ---- tablet: rotate screen + pen ----
+# auto-rotate from the accelerometer (exits quietly if hdaps is not present)
+exec --no-startup-id ~/.local/bin/darbs-autorotate
+# manual rotate: bezel rotate button or Super+o cycles orientation
 bindsym XF86RotateWindows exec --no-startup-id ~/.local/bin/darbs-rotate
 bindsym $mod+o exec --no-startup-id ~/.local/bin/darbs-rotate
+# toggle the auto-rotate daemon on/off (handy in laptop mode)
+bindsym $mod+Shift+o exec --no-startup-id sh -c 'pkill -f darbs-autorotate || ~/.local/bin/darbs-autorotate'
 # on-screen keyboard toggle
 bindsym $mod+F1 exec --no-startup-id sh -c 'pkill onboard || onboard'
 
