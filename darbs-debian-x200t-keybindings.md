@@ -130,6 +130,7 @@ Global defaults live in `~/.config/picom/picom.conf` (`inactive-opacity` and the
 ## The toolbar
 
 The top bar is **xfce4-panel**, not i3bar. Click it with the mouse or pen:
-Whisker app menu on the left, a window tasklist, the system tray (network,
-etc.), and a clock on the right. Right-click the panel to add or rearrange
-items.
+Whisker app menu on the left, a window tasklist, the system tray (network and
+Bluetooth applets, etc.), and a clock on the right. Right-click the panel to add
+or rearrange items. Click the Bluetooth icon to pair devices; audio devices then
+appear in pavucontrol.

@@ -36,6 +36,7 @@ sudo apt install -y \
     lightdm lightdm-gtk-greeter \
     network-manager network-manager-gnome \
     pulseaudio pulseaudio-utils pavucontrol \
+    bluez blueman pulseaudio-module-bluetooth \
     brightnessctl \
     tp-smapi-dkms libnotify-bin \
     mate-polkit \
@@ -310,6 +311,7 @@ exec --no-startup-id picom
 exec --no-startup-id xfce4-panel
 exec --no-startup-id dunst
 exec --no-startup-id nm-applet
+exec --no-startup-id blueman-applet
 exec --no-startup-id /usr/lib/mate-polkit/polkit-mate-authentication-agent-1
 exec --no-startup-id xss-lock -- i3lock -c 0d1210
 
@@ -617,6 +619,10 @@ sudo systemctl enable lightdm 2>/dev/null || true
 
 # NetworkManager as the network stack
 sudo systemctl enable NetworkManager 2>/dev/null || true
+
+# Bluetooth
+sudo systemctl enable bluetooth 2>/dev/null || true
+sudo systemctl start bluetooth 2>/dev/null || true
 
 # -----------------------------
 # DONE
