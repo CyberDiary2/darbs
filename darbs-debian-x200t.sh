@@ -45,6 +45,7 @@ sudo apt install -y \
     firefox-esr \
     ranger pcmanfm \
     neovim nano htop git curl wget unzip tmux \
+    ffmpeg python3-tk \
     flameshot \
     papirus-icon-theme sassc \
     fonts-dejavu fonts-noto \
@@ -616,6 +617,20 @@ elif curl -fsSL "https://raw.githubusercontent.com/CyberDiary2/darbs/main/.tmux.
     log "tmux config fetched from GitHub."
 else
     log "WARNING: could not install .tmux.conf (repo file missing and fetch failed)."
+fi
+
+# -----------------------------
+# PIPECAST (lightweight ffmpeg streaming/recording GUI)
+# -----------------------------
+log "Installing pipecast..."
+if [ ! -d "$HOME/repos/pipecast" ]; then
+    mkdir -p "$HOME/repos"
+    git clone https://github.com/CyberDiary2/pipecast "$HOME/repos/pipecast" 2>/dev/null || \
+        log "WARNING: could not clone pipecast (check network)"
+fi
+if [ -d "$HOME/repos/pipecast" ]; then
+    ( cd "$HOME/repos/pipecast" && make install ) 2>/dev/null || \
+        log "WARNING: pipecast make install failed"
 fi
 
 # -----------------------------
