@@ -577,6 +577,67 @@ yay_install \
     semgrep
 
 # -----------------------------
+# MORE BLACKARCH TOOLS
+# extra coverage: OSINT, AD/post-exploitation, wireless, forensics, MITM
+# -----------------------------
+log "Installing additional BlackArch tools..."
+yay_install \
+    spiderfoot \
+    sn0int \
+    fierce \
+    dnsrecon \
+    netdiscover \
+    arp-scan \
+    nbtscan \
+    onesixtyone \
+    snmpcheck \
+    fping \
+    maigret \
+    dirb \
+    wafw00f \
+    joomscan \
+    droopescan \
+    cmseek \
+    xsser \
+    dotdotpwn \
+    skipfish \
+    sslscan \
+    sslyze \
+    testssl.sh \
+    routersploit \
+    evil-winrm \
+    kerbrute \
+    certipy \
+    powersploit \
+    nishang \
+    smbmap \
+    ldapdomaindump \
+    chisel \
+    pwncat \
+    crunch \
+    hashid \
+    hash-identifier \
+    ncrack \
+    cupp \
+    wordlists \
+    hcxtools \
+    hcxdumptool \
+    pixiewps \
+    mdk4 \
+    bully \
+    radare2 \
+    steghide \
+    perl-image-exiftool \
+    sleuthkit \
+    testdisk \
+    bulk-extractor \
+    yara \
+    dex2jar \
+    pdfid \
+    scapy \
+    dsniff
+
+# -----------------------------
 # INSTALL GO
 # -----------------------------
 log "Installing Go..."
@@ -1321,6 +1382,51 @@ sec_desktop "ADB"            "adb --version && adb help"        "Android Debug B
 
 # ── Proxy / Anonymity ────────────────────────────────────────────────────────
 sec_desktop "Proxychains"    "proxychains -h 2>&1 | head -30"  "Route tools through proxy chain"    "MITM"
+
+# ── Reconnaissance (added) ───────────────────────────────────────────────────
+sec_desktop "SpiderFoot"     "spiderfoot -h"                    "Automated OSINT collection engine"  "Reconnaissance"
+sec_desktop "Sn0int"         "sn0int --help"                    "Semi-automatic OSINT framework"     "Reconnaissance"
+sec_desktop "Fierce"         "fierce -h"                        "DNS reconnaissance scanner"         "Reconnaissance"
+sec_desktop "DNSRecon"       "dnsrecon -h"                      "DNS enumeration and recon"          "Reconnaissance"
+sec_desktop "Netdiscover"    "netdiscover -h 2>&1 | head -30"   "ARP host discovery on the LAN"      "Reconnaissance"
+sec_desktop "Arp-scan"       "arp-scan --help 2>&1 | head -30"  "Layer-2 host discovery"             "Reconnaissance"
+sec_desktop "Maigret"        "maigret --help 2>&1 | head -40"   "Username OSINT across sites"         "Reconnaissance"
+sec_desktop "SNMP-check"     "snmp-check -h 2>&1 | head -20"    "SNMP device enumeration"            "Reconnaissance"
+
+# ── Web Application (added) ──────────────────────────────────────────────────
+sec_desktop "Dirb"           "dirb"                             "Web content scanner"                "WebApp"
+sec_desktop "Wafw00f"        "wafw00f -h"                       "WAF fingerprinting"                 "WebApp"
+sec_desktop "XSSer"          "xsser --help 2>&1 | head -40"     "Automated XSS detection"            "WebApp"
+sec_desktop "JoomScan"       "joomscan --help"                  "Joomla vulnerability scanner"       "WebApp"
+sec_desktop "Skipfish"       "skipfish -h 2>&1 | head -30"      "Active web recon scanner"           "WebApp"
+
+# ── Exploitation / AD (added) ────────────────────────────────────────────────
+sec_desktop "RouterSploit"   "routersploit"                     "Embedded device exploit framework"  "Exploitation"
+sec_desktop "Evil-WinRM"     "evil-winrm -h"                    "WinRM shell for pentesting"         "Exploitation"
+sec_desktop "Kerbrute"       "kerbrute -h"                      "Kerberos pre-auth brute-forcer"     "Exploitation"
+sec_desktop "Certipy"        "certipy -h"                       "AD Certificate Services abuse"      "Exploitation"
+sec_desktop "SMBMap"         "smbmap -h"                        "SMB share enumeration"              "Exploitation"
+sec_desktop "Pwncat"         "pwncat --help 2>&1 | head -30"    "Post-exploitation listener/shell"   "Exploitation"
+
+# ── Wireless (added) ─────────────────────────────────────────────────────────
+sec_desktop "hcxdumptool"    "hcxdumptool -h 2>&1 | head -30"   "WPA/PMKID capture tool"             "Wireless"
+sec_desktop "Pixiewps"       "pixiewps -h"                      "Offline WPS pixie-dust attack"      "Wireless"
+sec_desktop "mdk4"           "mdk4 --help 2>&1 | head -30"      "WiFi stress/attack tool"            "Wireless"
+sec_desktop "Bully"          "bully -h 2>&1 | head -30"         "WPS brute-force (reaver alt)"        "Wireless"
+
+# ── Forensics / RE (added) ───────────────────────────────────────────────────
+sec_desktop "Radare2"        "r2 -h"                            "Reverse-engineering framework"      "Forensics"
+sec_desktop "Steghide"       "steghide --help"                  "Hide/extract data in images/audio"  "Forensics"
+sec_desktop "ExifTool"       "exiftool -h 2>&1 | head -40"      "Read/write file metadata"           "Forensics"
+sec_desktop "Sleuthkit"      "fls -V; echo; mmls -V"            "Disk/filesystem forensics toolkit"  "Forensics"
+sec_desktop "TestDisk"       "testdisk /help"                   "Partition recovery / PhotoRec"      "Forensics"
+sec_desktop "YARA"           "yara --help 2>&1 | head -30"      "Pattern-matching for malware triage" "Forensics"
+
+# ── MITM / Capture (added) ───────────────────────────────────────────────────
+sec_desktop "SSLScan"        "sslscan --help 2>&1 | head -30"   "TLS/SSL cipher scanner"             "MITM"
+sec_desktop "SSLyze"         "sslyze -h"                        "Fast TLS configuration analyzer"    "MITM"
+sec_desktop "testssl.sh"     "testssl.sh --help 2>&1 | head -30" "Deep TLS/SSL server testing"       "MITM"
+sec_desktop "dsniff"         "dsniff -h 2>&1 | head -20"        "Network password sniffer"           "MITM"
 
 # ── Update desktop database so Whisker picks up new entries ──────────────────
 if command -v update-desktop-database &>/dev/null; then
